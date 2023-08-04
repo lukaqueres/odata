@@ -403,4 +403,18 @@ class Workflow(Type):
     input_product_type: str
     input_product_types: list[str]
     output_product_type: str
-    output_
+    output_product_types: list[str]
+    workflow_version: str
+    workflow_options: list[WorkflowOptions]
+    custom_input_source: bool
+
+
+@dataclass
+class WorkflowOptions:
+    name: str
+    description: str
+    type: str
+    default: str
+    value: list[str]
+    required: bool
+    
