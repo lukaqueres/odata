@@ -53,6 +53,13 @@ class Credentials:
 
 
 class Token:
+    """
+    Class for storing and refreshing access token. __str__ returns access token.
+    >>> token = asyncio.run(Token.new(email, password, totp_key, totp_code, platform))
+
+    >>> token.stop()
+
+    """
     def __init__(self, credentials: Credentials):
         self.__token: str = ""
         self.__token_expires: datetime.datetime = datetime.datetime.now() - datetime.timedelta(1, 0)
@@ -60,16 +67,18 @@ class Token:
         self.__refresh_token: str = ""
         self.__refresh_expires: datetime.datetime = datetime.datetime.now() - datetime.timedelta(1, 0)
 
-        self.__credentials = credentials
+        self.__credentials: Credentials = credentials
 
         self.keep_alive = True
-        self._alive_task: typing.Optional[asyncio.Task] = None
+        self._alive_task: asyncio.Task = asyncio.create_task(self._keep_alive())
+
+        self.__update()
 
     def __str__(self) -> str:
         if self.__token_expires < self.__time_now < self.__refresh_expires:
             self.__refresh()
         elif self.__token_expires < self.__time_now or self.__refresh_expires < self.__time_now:
-            self._update()
+            self.__update()
         return self.__token
 
     def __refresh(self):
@@ -84,14 +93,14 @@ class Token:
             logger.debug(f"Token refreshed")
         return
 
-    def _update(self):
+    def __update(self):
         with requests.Session() as session:
             data = {
                 "client_id": self.__credentials.client_id,
                 "username": self.__credentials.email,
                 "password": self.__credentials.password,
                 "grant_type": "password",
-                # "totp": self.__credentials.totp
+                "totp": self.__credentials.totp
             }
             response = session.post(self.__credentials.url, data=data, verify=True)
         if self.__save(response):
@@ -112,7 +121,7 @@ class Token:
         return True
 
     async def _keep_alive(self):
-        logger.debug(f"Keeping alive; refresh after {(self.__refresh_expires - self.__time_now).total_seconds() - 10}s")
+        logger.debug(f"Keeping alive; refresh after {(self.__token_expires - self.__time_now).total_seconds() - 10}s")
         await asyncio.sleep((self.__token_expires - self.__time_now).total_seconds() - 10)
         if self.keep_alive:
             self.__refresh()
@@ -132,9 +141,6 @@ class Token:
         logger.debug(f"Creating new token for {email}")
         totp = Totp(totp_key=totp_key, totp_code=totp_code)
         token = Token(credentials=Credentials(email, password, platform, totp))
-        token._update()
-
-        token._alive_task = asyncio.create_task(token._keep_alive())
 
         return token
 
