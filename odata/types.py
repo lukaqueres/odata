@@ -13,7 +13,7 @@ from odata.__authentication import Token
 class Group:
     _api_url = "https://datahub.creodias.eu/odata/v1/"
 
-    def __init__(self, token: str | Token = ""):
+    def __init__(self, token: str | Token):
         self._token: Token | str = token
 
     def token(self, token: Token | str) -> typing.Self:
@@ -392,6 +392,93 @@ class RequestInvalid(Type):
     detail: list[RequestInvalidDetail]
 
 
+class WorkflowsGroup(Group):
+    def __init__(self, token: Token | str):
+        super().__init__(token)
+
+    async def __call__(self, expand: list = [], workflow_filter: str = "", order_by: str = "",
+                       count: bool = False, top: int = 0, skip: int = 0) -> Workflows:
+        data: dict = {
+            "expand": expand,
+            "filter": workflow_filter,
+            "orderby": order_by,
+            "count": count,
+            "top": top,
+            "skip": skip
+        }
+
+        response = await self._get("Workflows", data=data)
+
+        result = response.json()
+
+        workflows = Workflows(
+            _token=self._token,
+            response=response,
+            context=result["@odata.context"],
+            next_link=result["@odata.nextLink"],
+            count=result["@odata.count"],
+            workflows=[
+                Workflow(
+                    _token=self._token,
+                    response=response,
+                    id=i["Id"],
+                    uuid=i["Uuid"],
+                    name=i["Name"],
+                    display_name=i["DisplayName"],
+                    documentation=i["Documentation"],
+                    description=i["Description"],
+                    input_product_type=i["InputProductType"],
+                    input_product_types=i["InputProductTypes"],
+                    output_product_type=i["OutputProductType"],
+                    output_product_types=i["OutputProductTypes"],
+                    workflow_version=i["WorkflowVersion"],
+                    workflow_options=[
+                        WorkflowOptions(
+                            name=j["Name"],
+                            description=j["Description"],
+                            type=j["Type"],
+                            default=j["Default"],
+                            value=j["Value"],
+                            required=j["Required"]
+                        ) for j in i["WorkflowOptions"]
+                    ],
+                    custom_input_source=i["CustomInputSource"]
+                ) for i in result["value"]
+            ]
+        )
+
+        return workflows
+
+
+@dataclass
+class Workflows(Type):
+    context: str
+    next_link: str
+    count: int
+    workflows: list[Workflow]
+    __current: int = 0
+
+    def __getitem__(self, item):
+        return self.workflows[item]
+
+    def __len__(self):
+        return len(self.workflows)
+
+    def __iter__(self):
+        self.__current = 0
+        return self
+
+    def __next__(self):
+        if self.__current >= len(self.workflows):
+            self.__current = 0
+            raise StopIteration
+        self.__current += 1
+        return self.workflows[self.__current]
+
+    def __nonzero__(self) -> bool:
+        return bool(self.workflows)
+
+
 @dataclass
 class Workflow(Type):
     id: str
@@ -417,4 +504,3 @@ class WorkflowOptions:
     default: str
     value: list[str]
     required: bool
-    
