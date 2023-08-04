@@ -29,6 +29,8 @@ async def main():
     # order = await client.production.order(7)
     order = await client.production.order(10)
     cancelled = await order.production_order.cancel()
+
+    workflows = await client.workflows()
     print(bool(order))
     await asyncio.sleep(900)
     await client.stop()
