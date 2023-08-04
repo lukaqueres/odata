@@ -27,6 +27,7 @@ class Client:
         self.email: str = ""
 
         self.production: typing.Optional[types.Production] = None
+        self.workflows: typing.Optional[types.WorkflowsGroup] = None
 
     @property
     def live(self) -> bool:
@@ -52,6 +53,7 @@ class Client:
         self.live = True
 
         self.production = types.Production(self.token)
+        self.workflows = types.WorkflowsGroup(self.token)
 
         logger.info(f"Client connection for {self.email} is live")
         asyncio.ensure_future(self.__run_event.wait())
