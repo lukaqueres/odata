@@ -121,11 +121,11 @@ class Token:
         return True
 
     async def _keep_alive(self):
-        logger.debug(f"Keeping alive; refresh after {(self.__token_expires - self.__time_now).total_seconds() - 10}s")
-        await asyncio.sleep((self.__token_expires - self.__time_now).total_seconds() - 10)
-        if self.keep_alive:
-            self.__refresh()
-        await self._keep_alive()
+        while True:
+            logger.debug(f"Keeping alive; refresh after {(self.__token_expires - self.__time_now).total_seconds() - 10}s")
+            await asyncio.sleep((self.__token_expires - self.__time_now).total_seconds() - 10)
+            if self.keep_alive:
+                self.__refresh()
 
     @property
     def __time_now(self) -> datetime.datetime:
