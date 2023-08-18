@@ -49,16 +49,20 @@ async def codede_tests():
 
     await client.wait_until_ready()
 
-    products = await client.products("ContentDate/End lt 2019-05-15T00:05:00.000Z",
+    products = await client.products("OData.CSC.Intersects(area=geography'SRID=4326;POLYGON((5 55, 5 46.5, 16 46.5, 16 55, 5 55))')",
                                      "",
-                                     top=1)
+                                     top=20)
 
     for product in products:
-        nodes = await product.nodes
-        print(f"Nodes of {product.name}:")
-        if nodes:
+        # nodes = await product.nodes
+        print(f"Product {product.name}")
+        """if nodes:
             for node in nodes:
-                print(node.name)
+                print(node.name)"""
+
+    product = await client.product.get(products[0].id)
+
+    print(product.name)
 
     await asyncio.sleep(900)
     await client.stop()
