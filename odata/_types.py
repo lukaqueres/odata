@@ -458,7 +458,8 @@ class EOProducts(General):
     def __init__(self, client):
         super().__init__(client=client)
 
-        # TODO: Add product by ID and other methods
+    async def get(self, product_id: str) -> typing.Optional[EOProduct]:
+        return await EOProduct.fetch(self._client, product_id)
 
 
 class EOProductsCollection(Type):
@@ -534,6 +535,11 @@ class EOProduct(Type):
     def __init__(self, client: Client, data: dict):
         super().__init__(client)
 
+        self.context: str = data.get("@odata.context", "")
+
+        if "value" in data.keys():
+            data = data["value"][0]
+
         self.media_type: str = data["@odata.mediaContentType"]
         self.id: str = data["Id"]
         self.name: str = data["Name"]
@@ -555,6 +561,16 @@ class EOProduct(Type):
             data["GeoFootprint"]["type"],
             [EOCoordinate(c[0], c[1]) for c in data["GeoFootprint"]["coordinates"][0]]
         )
+
+    @staticmethod
+    async def fetch(client: Client, product_id: str) -> typing.Optional[EOProduct]:
+        response = await client.fetch("get", f"Products({product_id})")
+        result = response.json()
+
+        if not response.ok:
+            return None
+
+        return EOProduct(client, result)
 
     @property
     async def nodes(self) -> typing.Optional[EOProductNodesCollection]:

@@ -30,6 +30,7 @@ class Client:
         self.__ready_event: asyncio.Event = asyncio.Event()
 
         self.production_order = _types.ProductionOrder(client=self)
+        self.product = _types.EOProducts(self)
 
         self.email: str = ""
 
