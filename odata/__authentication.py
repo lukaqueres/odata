@@ -55,9 +55,9 @@ class Credentials:
 class Token:
     """
     Class for storing and refreshing access token. __str__ returns access token.
-    >>> token = asyncio.run(Token.new(email, password, totp_key, totp_code, platform))
+    >>>#  token = asyncio.run(Token.new(email, password, totp_key, totp_code, platform))
 
-    >>> token.stop()
+    >>># token.stop()
 
     """
     def __init__(self, credentials: Credentials):
@@ -121,11 +121,11 @@ class Token:
         return True
 
     async def _keep_alive(self):
-        while True:
-            logger.debug(f"Keeping alive; refresh after {(self.__token_expires - self.__time_now).total_seconds() - 10}s")
-            await asyncio.sleep((self.__token_expires - self.__time_now).total_seconds() - 10)
-            if self.keep_alive:
-                self.__refresh()
+        logger.debug(f"Keeping alive; refresh after {(self.__token_expires - self.__time_now).total_seconds() - 10}s")
+        await asyncio.sleep((self.__token_expires - self.__time_now).total_seconds() - 10)
+        if self.keep_alive:
+            self.__refresh()
+        await self._keep_alive()
 
     @property
     def __time_now(self) -> datetime.datetime:
