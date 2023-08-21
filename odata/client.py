@@ -7,6 +7,7 @@ import requests
 
 import odata.errors as errors
 import odata._types as _types
+import odata._query_constructors as _constructors
 
 from odata.__authentication import Token
 
@@ -30,9 +31,20 @@ class Client:
         self.__ready_event: asyncio.Event = asyncio.Event()
 
         self.production_order = _types.ProductionOrder(client=self)
-        self.product = _types.EOProducts(self)
 
         self.email: str = ""
+
+    @property
+    def __api_url(self):
+        api_urls = {
+            "creodias": "https://datahub.creodias.eu/odata/v1/",
+            "codede": os.environ.get("CODEDE_TEST_URL")  # TODO: Update after release
+        }
+        return api_urls[self.source]
+
+    @property
+    def product(self) -> _constructors.OProductsQueryConstructor:
+        return _constructors.OProductsQueryConstructor(self)
 
     @property
     def live(self) -> bool:
@@ -47,14 +59,6 @@ class Client:
         else:
             self.__ready_event: asyncio.Event = asyncio.Event()
             self.__run_event: asyncio.Event = asyncio.Event()
-
-    @property
-    def __api_url(self):
-        api_urls = {
-            "creodias": "https://datahub.creodias.eu/odata/v1/",
-            "codede": os.environ.get("CODEDE_TEST_URL")  # TODO: Update after release
-        }
-        return api_urls[self.source]
 
     async def fetch(self, method: typing.Literal["post", "get"], endpoint: str = "", params: dict = {}, data: dict = {},
                     url: str = "",

@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 import typing
 import logging
 
+import requests
+
 if typing.TYPE_CHECKING:
     from odata.client import Client
 
@@ -16,6 +18,15 @@ from odata._helpers import TimeConverter
 logger = logging.getLogger("odata")
 
 _timeconverter = TimeConverter
+
+
+@dataclass
+class ODataCoordinate:
+    x: float
+    y: float
+
+    def __str__(self):
+        return f"{self.x} {self.y}"
 
 
 class General:
@@ -559,7 +570,7 @@ class EOProduct(Type):
         self.footprint: str = data["Footprint"]
         self.geo_footprint: EOProductGeoFootprintModel = EOProductGeoFootprintModel(
             data["GeoFootprint"]["type"],
-            [EOCoordinate(c[0], c[1]) for c in data["GeoFootprint"]["coordinates"][0]]
+            [ODataCoordinate(c[0], c[1]) for c in data["GeoFootprint"]["coordinates"][0]]
         )
 
     @staticmethod
@@ -574,7 +585,13 @@ class EOProduct(Type):
 
     @property
     async def nodes(self) -> typing.Optional[EOProductNodesCollection]:
-        return await EOProductNodesCollection.fetch(self._client, self.id)
+        response = await self._client.fetch("get", f"Products({self.id})/Nodes")
+        result = response.json()
+
+        if not response.ok:
+            return None
+
+        return EOProductNodesCollection(self._client, result)
 
 
 @dataclass
@@ -586,7 +603,7 @@ class EOProductContentDateModel:
 @dataclass
 class EOProductGeoFootprintModel:
     type: str
-    coordinates: list[EOCoordinate]
+    coordinates: list[ODataCoordinate]
 
 
 @dataclass
@@ -602,16 +619,6 @@ class EOProductNodesCollection(Type):
         self.list: list[EOProductNode] = [EOProductNode(client, d) for d in data["result"]]
 
         self.__current: int = 0
-
-    @staticmethod
-    async def fetch(client, product_id) -> typing.Optional[EOProductNodesCollection]:
-        response = await client.fetch("get", f"Products({product_id})/Nodes")
-        result = response.json()
-
-        if not response.ok:
-            return None
-
-        return EOProductNodesCollection(client, result)
 
     def __getitem__(self, item):
         return self.list[item]
@@ -662,3 +669,171 @@ class EOProductNode(Type):
 @dataclass
 class EOProductNodeNodesModel:
     uri: str
+
+
+# TODO: QUERY CONSTRUCTIOR'S CLASSES:
+
+class ODataObject:
+    def __init__(self, client: Client, response: typing.Optional[requests.Response] = None):
+        self._client = client
+
+        self._response = response
+
+
+class ODataObjectCollection(ODataObject):
+    def __init__(self, client: Client, response: typing.Optional[requests.Response] = None):
+        super().__init__(client, response)
+
+        self.products: list[ODataProductionOrderResponse] = []
+
+    def __getitem__(self, item):
+        return self.products[item]
+
+    def __len__(self):
+        return len(self.products)
+
+    def __iter__(self):
+        self.__current = 0
+        return self
+
+    def __next__(self):
+        if self.__current >= len(self.products):
+            self.__current = 0
+            raise StopIteration
+
+        current = self.products[self.__current]
+        self.__current += 1
+        return current
+
+    def __nonzero__(self) -> bool:
+        return bool(self.products)
+
+
+class OProductsCollection(ODataObjectCollection):
+    def __init__(self, client: Client, data: dict, response: typing.Optional[requests.Response] = None):
+        super().__init__(client, response)
+
+        self.context: str = data.get("@odata.context", "")
+        self.next_link: str = data.get("@odata.nextLink", "")
+        self.count: int = data.get("@odata.count", 0)
+
+        self.products: list[OProduct] = [OProduct(client, d, response) for d in data["value"]]
+
+
+class OProduct(ODataObject):
+    def __init__(self, client: Client, data: dict, response: typing.Optional[requests.Response] = None):
+        super().__init__(client, response)
+        self.media_type: str = data["@odata.mediaContentType"]
+        self.id: str = data["Id"]
+        self.name: str = data["Name"]
+        self.content_type: str = data.get("ContentType")
+        self.content_length: int = data.get("ContentLength", 0)
+        self.origin_date: datetime.date = TimeConverter.to_date(data["OriginDate"])
+        self.publication_date: datetime.date = TimeConverter.to_date(data["PublicationDate"])
+        self.modification_date: datetime.date = TimeConverter.to_date(data["ModificationDate"])
+        self.online: bool = data.get("Online", False)
+        self.eviction_date: datetime.date = TimeConverter.to_date(data["EvictionDate"])
+        self.s3_path: str = data["S3Path"]
+        self.checksum: list = data.get("Checksum", [])
+        self.content_date: EOProductContentDateModel = EOProductContentDateModel(
+            TimeConverter.to_date(data["ContentDate"].get("Start", "")),
+            TimeConverter.to_date(data["ContentDate"].get("End", ""))
+        )
+        self.footprint: str = data["Footprint"]
+        self.geo_footprint: EOProductGeoFootprintModel = EOProductGeoFootprintModel(
+            data["GeoFootprint"]["type"],
+            [ODataCoordinate(c[0], c[1]) for c in data["GeoFootprint"]["coordinates"][0]]
+        )
+
+        self.attributes: list[OProductAttributes] = [OProductAttributes(a["@odata.type"],
+                                                                        a["Name"],
+                                                                        a["Value"],
+                                                                        a["ValueType"]
+                                                                        ) for a in data.get("Attributes", [])]
+
+    @property
+    async def nodes(self) -> typing.Optional[OProductNodesCollection]:
+        response = await self._client.fetch("get", f"Products({self.id})/Nodes")
+        result = response.json()
+
+        if not response.ok:
+            return None
+
+        return OProductNodesCollection(self._client, result)
+
+    @property
+    async def value(self) -> typing.Optional[str]:
+        response = await self._client.fetch("get", f"Products({self.id})/$value")
+
+        if not response.ok:
+            return None
+        result = response.json()
+
+        return result
+
+
+class OProductNodesCollection(ODataObject):
+    def __init__(self, client, data):
+        super().__init__(client=client)
+
+        self.nodes: list[OProductNode] = [OProductNode(client, d) for d in data["result"]]
+
+        self.__current: int = 0
+
+    def __getitem__(self, item):
+        return self.nodes[item]
+
+    def __len__(self):
+        return len(self.nodes)
+
+    def __iter__(self):
+        self.__current = 0
+        return self
+
+    def __next__(self):
+        if self.__current >= len(self.nodes):
+            self.__current = 0
+            raise StopIteration
+
+        current = self.nodes[self.__current]
+        self.__current += 1
+        return current
+
+    def __nonzero__(self) -> bool:
+        return bool(self.nodes)
+
+
+class OProductNode(ODataObject):
+    def __init__(self, client, data):
+        super().__init__(client=client)
+
+        self.id: str = data["Id"]
+        self.name: str = data["Name"]
+        self.content_length: int = data.get("ContentLength", 0)
+        self.children_number: int = data.get("ChildrenNumber", 0)
+        self.nodes_uri: OProductNodeNodesModel = OProductNodeNodesModel(
+            data["Nodes"]["uri"]
+        )
+
+    @property
+    async def nodes(self) -> typing.Optional[EOProductNodesCollection]:
+        response = await self._client.fetch("get", self.nodes_uri.uri)
+        result = response.json()
+
+        if not response.ok:
+            return None
+
+        return EOProductNodesCollection(self._client, result)
+
+
+@dataclass
+class OProductNodeNodesModel:
+    uri: str
+
+
+@dataclass
+class OProductAttributes:
+    type: str
+    name: str
+    value: str
+    value_type: str
