@@ -3,13 +3,15 @@ import os
 
 import odata
 
+from odata._helpers import TimeConverter  # TODO: TMP FIND BETTER SOLUTION
+
 
 def ask_code() -> str:
     print("Please enter 2FA Code:")
     return input()
 
 
-client = odata.Client(source="codede", ssl_verify=False)
+client = odata.Client(source="creodias", ssl_verify=False)
 
 
 @client.ready
@@ -42,30 +44,32 @@ async def main():
     await client.stop()
 
 
-async def codede_tests():
+async def product_tests():
     await client.run(email=os.environ.get("COPERNICUS"),
                      password=os.environ.get("COPERNICUS_PASS"),
                      platform="copernicus")
 
-    await client.wait_until_ready()
+    # await client.product.filter.collection("SENTINEL-1").and_.name_has("S1A").or_.name_is("S1A_EW_GRDM_1SDH_20220503T065105_20220503T065203_043043_0523C5_AC61.SAFE").top(30).get()
 
-    products = await client.products("OData.CSC.Intersects(area=geography'SRID=4326;POLYGON((5 55, 5 46.5, 16 46.5, 16 55, 5 55))')",
-                                     "",
-                                     top=20)
+    # start_date = TimeConverter.to_date("2019-05-15T00:00:00.000Z")
+    # end_date = TimeConverter.to_date("2019-05-16T00:00:00.000Z")
 
-    for product in products:
-        # nodes = await product.nodes
-        print(f"Product {product.name}")
-        """if nodes:
-            for node in nodes:
-                print(node.name)"""
+    # await client.product.filter.geographic_point(-0.5319577002158441, 28.65487836189358).and_.sensing_date(start_date, end_date).count(True).expand("Attributes").get()
 
-    product = await client.product.get(products[0].id)
+    collection = await client.product.get()
+    # collection = await client.product.id("fe37ae5f-153b-511c-89b9-dcc059c86489", expand="Attributes")
 
-    print(product.name)
+    print(collection.products)
+    product = collection[0]
+    for product in collection.products:
+        pass
+        # print(product.name)
+
+    nodes = await product.nodes
+    for node in nodes:
+        print(node.name)
 
     await asyncio.sleep(900)
     await client.stop()
 
-
-asyncio.run(codede_tests())
+asyncio.run(product_tests())
