@@ -35,14 +35,6 @@ class Client:
         self.email: str = ""
 
     @property
-    def __api_url(self):
-        api_urls = {
-            "creodias": "https://datahub.creodias.eu/odata/v1/",
-            "codede": os.environ.get("CODEDE_TEST_URL")  # TODO: Update after release
-        }
-        return api_urls[self.source]
-
-    @property
     def product(self) -> _constructors.OProductsQueryConstructor:
         return _constructors.OProductsQueryConstructor(self)
 
@@ -60,30 +52,6 @@ class Client:
             self.__ready_event: asyncio.Event = asyncio.Event()
             self.__run_event: asyncio.Event = asyncio.Event()
 
-    async def fetch(self, method: typing.Literal["post", "get"], endpoint: str = "", params: dict = {}, data: dict = {},
-                    url: str = "",
-                    *args, **kwargs) -> requests.Response:
-        with requests.Session() as session:
-
-            if self.source != "codede":  # TODO: TEMPORARY FIX FOR CODEDE REQUESTS
-                session.headers["authorization"] = f"Bearer {self.token}"
-
-            if method == "get":
-                params = {k: v for k, v in params.items() if v}
-                response: requests.Response = session.get(f"{self.__api_url}{endpoint}" if not url else url, *args,
-                                                          params=params, **kwargs, verify=self._ssl_verify)
-            else:
-                response: requests.Response = session.post(f"{self.__api_url}{endpoint}" if not url else url, *args,
-                                                           data=data, **kwargs, verify=self._ssl_verify)
-
-        if response.status_code in (401, 403):
-            raise errors.UnauthorizedError(response.status_code, response.reason)
-
-        if not response.ok:
-            logger.debug(f"Endpoint for {endpoint} returned {response.status_code} - {response.reason}")
-
-        return response
-
     async def workflows(self, expand, query_filter: str, order_by: str, count: bool = False, top: int = 1000,
                         skip: int = 0) -> _types.ODataWorkflowsCollection:
         return await _types.ODataWorkflowsCollection.fetch(client=self, expand=expand, query_filter=query_filter,
@@ -92,12 +60,6 @@ class Client:
     async def production_orders(self, query_filter: str = "", order_by: str = "", count: bool = False,
                                 top: int = 1000, skip: int = 0) -> _types.ODataProductionOrderCollection:
         return await _types.ODataProductionOrderCollection.fetch(self, query_filter, order_by, count, top, skip)
-
-    async def products(self, query_filter: str, order_by: str, top: int = 1000, skip: int = 0,
-                       count: bool = False, expand: str = "") -> _types.EOProductsCollection:
-
-        return await _types.EOProductsCollection.fetch(self, query_filter=query_filter, order_by=order_by, top=top,
-                                                       skip=skip, count=count, expand=expand)
 
     async def run(self, email: str, password: str, totp_key: str = "",
                   totp_code: str | typing.Callable[[], str] = "",
