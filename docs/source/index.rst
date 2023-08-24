@@ -1,10 +1,6 @@
 .. https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html
 .. https://devguide.python.org/documentation/markup/
-
-.. meta::
-    :title: Welcome to odata documentation
-    :description: Odata python library documentation
-    :keywords: python, library, odata, documentation, api, creodias, codede
+.. https://devguide.python.org/documentation/markup/#module-specific-markup
 
 #############
 Odata library
