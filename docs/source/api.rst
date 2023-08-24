@@ -6,14 +6,14 @@ Client
     :columns: 2
 
     * **Attributes**
-    * **Methods**
-    * source
-    * def run
     * email
-    * async stop
-    * product
-    * @ ready
     * http
+    * product
+    * source
+    * **Methods**
+    * @ ready
+    * def run
+    * async stop
 
 Represents connection to odata API. You use this class to interact with data.
 
@@ -24,8 +24,9 @@ Represents connection to odata API. You use this class to interact with data.
 
 .. _client-email:
 
+
 email
-=====
+-----
     Email of authorized user. ``None`` if no user is authorized.
 
     :type: **Type:**
