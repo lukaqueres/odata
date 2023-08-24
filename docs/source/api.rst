@@ -28,6 +28,7 @@ Represents connection to odata API. You use this class to interact with data.
 
 
 .. attribute:: email
+
     Email of authorized user. ``None`` if no user is authorized.
 
     :type: **Type:**
