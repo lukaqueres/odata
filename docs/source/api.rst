@@ -1,6 +1,6 @@
 Client
 #######
- `class` odata. **Client** ( `*, source="creodias", **options` )
+.. class:: `class` odata.Client( `*, source="creodias", **options` )
 
 .. rst-class:: attributes
 
@@ -13,7 +13,7 @@ Client
     * product
     * source
     * **Methods**
-    * @ ready
+    * .. decorator:: ready
     * def run
     * async stop
 
@@ -27,8 +27,7 @@ Represents connection to odata API. You use this class to interact with data.
 .. _client-email:
 
 
-email
-======
+.. attribute:: email
     Email of authorized user. ``None`` if no user is authorized.
 
     :type: **Type:**
