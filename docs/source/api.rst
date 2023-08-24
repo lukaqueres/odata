@@ -1,3 +1,4 @@
+~~~~~~
 Client
 ~~~~~~
  `class` odata. **Client** ( `*, source="creodias", **options` )
@@ -31,4 +32,3 @@ email
 
     :type: **Type:**
         Optional[ str ]
-
