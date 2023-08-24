@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import typing
 import logging
 
-import requests
+import aiohttp
 
 if typing.TYPE_CHECKING:
     from odata.client import Client
@@ -28,6 +28,7 @@ class ODataCoordinate:
     def __str__(self):
         return f"{self.x} {self.y}"
 
+"""
 
 class General:
 
@@ -670,21 +671,21 @@ class EOProductNode(Type):
 class EOProductNodeNodesModel:
     uri: str
 
+"""
 
-# TODO: QUERY CONSTRUCTIOR'S CLASSES:
 
 class ODataObject:
-    def __init__(self, client: Client, response: typing.Optional[requests.Response] = None):
-        self._client = client
+    def __init__(self, client: Client, response: aiohttp.ClientResponse):
+        self._client: Client = client
 
-        self._response = response
+        self._response: aiohttp.ClientResponse = response
 
 
 class ODataObjectCollection(ODataObject):
-    def __init__(self, client: Client, response: typing.Optional[requests.Response] = None):
+    def __init__(self, client: Client, response: aiohttp.ClientResponse):
         super().__init__(client, response)
 
-        self.products: list[ODataProductionOrderResponse] = []
+        self.products: list[typing.Type[ODataObject]] = []
 
     def __getitem__(self, item):
         return self.products[item]
@@ -710,7 +711,7 @@ class ODataObjectCollection(ODataObject):
 
 
 class OProductsCollection(ODataObjectCollection):
-    def __init__(self, client: Client, data: dict, response: typing.Optional[requests.Response] = None):
+    def __init__(self, client: Client, response: typing.Optional[aiohttp.ClientResponse] = None, data: dict = {}):
         super().__init__(client, response)
 
         self.context: str = data.get("@odata.context", "")
@@ -721,7 +722,7 @@ class OProductsCollection(ODataObjectCollection):
 
 
 class OProduct(ODataObject):
-    def __init__(self, client: Client, data: dict, response: typing.Optional[requests.Response] = None):
+    def __init__(self, client: Client, data: dict, response: typing.Optional[aiohttp.ClientResponse] = None):
         super().__init__(client, response)
         self.media_type: str = data["@odata.mediaContentType"]
         self.id: str = data["Id"]
@@ -735,12 +736,12 @@ class OProduct(ODataObject):
         self.eviction_date: datetime.date = TimeConverter.to_date(data["EvictionDate"])
         self.s3_path: str = data["S3Path"]
         self.checksum: list = data.get("Checksum", [])
-        self.content_date: EOProductContentDateModel = EOProductContentDateModel(
+        self.content_date: OProductContentDateModel = OProductContentDateModel(
             TimeConverter.to_date(data["ContentDate"].get("Start", "")),
             TimeConverter.to_date(data["ContentDate"].get("End", ""))
         )
         self.footprint: str = data["Footprint"]
-        self.geo_footprint: EOProductGeoFootprintModel = EOProductGeoFootprintModel(
+        self.geo_footprint: OProductGeoFootprintModel = OProductGeoFootprintModel(
             data["GeoFootprint"]["type"],
             [ODataCoordinate(c[0], c[1]) for c in data["GeoFootprint"]["coordinates"][0]]
         )
@@ -753,30 +754,28 @@ class OProduct(ODataObject):
 
     @property
     async def nodes(self) -> typing.Optional[OProductNodesCollection]:
-        response = await self._client.fetch("get", f"Products({self.id})/Nodes")
-        result = response.json()
-
+        response = await self._client.http.request("get", f"Products({self.id})/Nodes")
         if not response.ok:
             return None
 
-        return OProductNodesCollection(self._client, result)
+        return OProductNodesCollection(self._client, response, await response.json())
 
     @property
     async def value(self) -> typing.Optional[str]:
-        response = await self._client.fetch("get", f"Products({self.id})/$value")
+        response = await self._client.http.request("get", f"Products({self.id})/$value")
 
         if not response.ok:
             return None
-        result = response.json()
+        result = await response.json()
 
         return result
 
 
 class OProductNodesCollection(ODataObject):
-    def __init__(self, client, data):
-        super().__init__(client=client)
+    def __init__(self, client, response, data):
+        super().__init__(client, response)
 
-        self.nodes: list[OProductNode] = [OProductNode(client, d) for d in data["result"]]
+        self.nodes: list[OProductNode] = [OProductNode(client, response, d) for d in data["result"]]
 
         self.__current: int = 0
 
@@ -804,8 +803,8 @@ class OProductNodesCollection(ODataObject):
 
 
 class OProductNode(ODataObject):
-    def __init__(self, client, data):
-        super().__init__(client=client)
+    def __init__(self, client, response, data):
+        super().__init__(client, response)
 
         self.id: str = data["Id"]
         self.name: str = data["Name"]
@@ -816,14 +815,26 @@ class OProductNode(ODataObject):
         )
 
     @property
-    async def nodes(self) -> typing.Optional[EOProductNodesCollection]:
-        response = await self._client.fetch("get", self.nodes_uri.uri)
-        result = response.json()
+    async def nodes(self) -> typing.Optional[OProductNodesCollection]:
+        response = await self._client.http.request("get", self.nodes_uri.uri)
+        result = await response.json()
 
         if not response.ok:
             return None
 
-        return EOProductNodesCollection(self._client, result)
+        return OProductNodesCollection(self._client, response, result)
+
+
+@dataclass
+class OProductContentDateModel:
+    start: datetime.date
+    end: datetime.date
+
+
+@dataclass
+class OProductGeoFootprintModel:
+    type: str
+    coordinates: list[ODataCoordinate]
 
 
 @dataclass

@@ -8,7 +8,7 @@ import typing
 from typing import Literal
 from string import Formatter
 import logging
-import requests
+import aiohttp
 
 if typing.TYPE_CHECKING:
     from odata.client import Client
@@ -64,8 +64,8 @@ class Attributes:
 
         if operator == "!=":
             return AttributesFilter(
-                "Attributes/{_type}/any(att:att/Name eq '{_name}' and not att/{_type}/Value {_operator} {_value})",
-                attribute, "==", value
+                "not Attributes/{_type}/any(att:att/Name eq '{_name}' and att/{_type}/Value {_operator} {_value})",
+                attribute, "eq", value
             )
 
         operators: dict = {
@@ -352,26 +352,6 @@ class QueryConstructor:
 
         return api_urls[self._client.source]
 
-    async def _send(self, method: typing.Literal["post", "get"], url: str, params: dict = None, data: dict = None,
-                    *args, **kwargs) -> requests.Response:
-        with requests.Session() as session:
-
-            if self._client.source != "codede":  # TODO: TEMPORARY FIX FOR CODEDE REQUESTS
-                session.headers["authorization"] = f"Bearer {self._client.token}"
-
-            if method == "get":
-                response: requests.Response = session.get(url, *args, params=params, **kwargs)
-            else:
-                response: requests.Response = session.post(url, *args, data=data, **kwargs)
-
-        if response.status_code in (401, 403):
-            raise errors.UnauthorizedError(response.status_code, response.reason)
-
-        if not response.ok:
-            logger.debug(f"Endpoint for {url} returned {response.status_code} - {response.reason}")
-
-        return response
-
 
 TQueryConstructor = typing.TypeVar("TQueryConstructor", bound=QueryConstructor)
 
@@ -431,27 +411,32 @@ class OProductsQueryConstructor(QueryConstructor):
         return self
 
     async def get(self, *ids: str) -> typing.Optional[OProductsCollection]:
+        data = {}
+        params = {}
+
         if len(ids) > 1:
             url = "https://datahub.creodias.eu/odata/v1/Products/OData.CSC.FilterList"
             data = {
                 "FilterProducts": [{"Name": nid for nid in ids}]
             }
-            response = await self._send("post", url, data)
+            method = "post"
         elif len(ids) == 1:
             url = f"https://datahub.creodias.eu/odata/v1/Products({ids[0]})"
-            response = await self._send("get", url)
+            method = "get"
         else:
             params = self.__parse_params()
             url = "https://datahub.creodias.eu/odata/v1/Products"
-            response = await self._send("get", url, params)
+            method = "get"
+        response, result = await self._client.http.request(method, url, params=params, data=data)
 
         if not response.ok:
             return None
 
-        return OProductsCollection(self._client, response.json(), response)
+        collection = OProductsCollection(self._client, response, result)
+        return collection
 
     async def nodes(self, product_id: str) -> typing.Optional[OProductNodesCollection]:
-        response = await self._send("get", f"https://datahub.creodias.eu/odata/v1/Products({product_id})/Nodes")
+        response = await self._client.http.request("get", f"https://datahub.creodias.eu/odata/v1/Products({product_id})/Nodes")
 
         if not response.ok:
             return None
