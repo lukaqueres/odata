@@ -1,11 +1,11 @@
-.attributes {
+.hlist {
     list-style-type: none;
 }
 
-.attributes > li {
+.hlist > li {
     border-left: grey solid 1px;
 }
 
-.attributes > li :hover {
+.hlist > li :hover {
     color: blue;
 }
