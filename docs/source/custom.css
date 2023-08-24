@@ -2,10 +2,10 @@
     list-style-type: none;
 }
 
-.hlist > li {
+.hlist li {
     border-left: grey solid 1px;
 }
 
-.hlist > li :hover {
+.hlist li :hover {
     color: blue;
 }
