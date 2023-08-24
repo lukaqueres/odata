@@ -1,6 +1,6 @@
-``````
+******
 Client
-``````
+******
  `class` odata. **Client** ( `*, source="creodias", **options` )
 
 .. hlist::
@@ -25,9 +25,9 @@ Represents connection to odata API. You use this class to interact with data.
 
 .. _client-email:
 
-
+^^^^^
 email
-~~~~~
+^^^^^
     Email of authorized user. ``None`` if no user is authorized.
 
     :type: **Type:**
