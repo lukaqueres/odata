@@ -19,7 +19,7 @@ extensions = [
     'sphinx.ext.intersphinx',
 ]
 
-html_static_path = ['_static']
+html_static_path = ['docs/_static']
 
 html_css_files = ['custom.css',
                   ('custom.css', {'media': 'print'})]
