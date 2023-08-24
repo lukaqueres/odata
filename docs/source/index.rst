@@ -6,11 +6,6 @@
     :description: Odata python library documentation
     :keywords: python, library, odata, documentation, api, creodias, codede
 
-.. toctree::
-   :maxdepth: 2
-
-   api
-
 #############
 Odata library
 #############
