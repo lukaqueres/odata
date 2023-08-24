@@ -1,0 +1,11 @@
+.attributes {
+    list-style-type: none;
+}
+
+.attributes > li {
+    border-left: grey solid 1px;
+}
+
+.attributes > li :hover {
+    color: blue;
+}

@@ -19,6 +19,9 @@ extensions = [
     'sphinx.ext.intersphinx',
 ]
 
+html_css_files = ['custom.css',
+                  ('custom.css', {'media': 'print'})]
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
