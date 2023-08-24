@@ -1,18 +1,19 @@
-""""""
 Client
-""""""
+~~~~~~
  `class` odata. **Client** ( `*, source="creodias", **options` )
 
-===================      ========================
-Attributes               Methods
-===================      ========================
-:ref:`client-email`      `@`     ready
-live                     `def`   run
-product
-source                   `async` wait_until_ready
-token
+.. hlist::
+    :columns: 2
 
-===================      ========================
+    * **Attributes**
+    * **Methods**
+    * source
+    * def run
+    * email
+    * async stop
+    * product
+    * @ ready
+    * http
 
 Represents connection to odata API. You use this class to interact with data.
 
@@ -27,6 +28,6 @@ email
 =====
     Email of authorized user. ``None`` if no user is authorized.
 
-    **Type:**
+    :type: **Type:**
         Optional[ str ]
 
