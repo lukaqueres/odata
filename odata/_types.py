@@ -685,29 +685,31 @@ class ODataObjectCollection(ODataObject):
     def __init__(self, client: Client, response: aiohttp.ClientResponse):
         super().__init__(client, response)
 
-        self.products: list[typing.Type[ODataObject]] = []
+        self.items: list[typing.Type[ODataObject]] = []
+
+        self._current = 0
 
     def __getitem__(self, item):
-        return self.products[item]
+        return self.items[item]
 
     def __len__(self):
-        return len(self.products)
+        return len(self.items)
 
     def __iter__(self):
-        self.__current = 0
+        self._current = 0
         return self
 
     def __next__(self):
-        if self.__current >= len(self.products):
-            self.__current = 0
+        if self._current >= len(self.items):
+            self._current = 0
             raise StopIteration
 
-        current = self.products[self.__current]
-        self.__current += 1
+        current = self.items[self._current]
+        self._current += 1
         return current
 
     def __nonzero__(self) -> bool:
-        return bool(self.products)
+        return bool(self.items)
 
 
 class OProductsCollection(ODataObjectCollection):
@@ -718,7 +720,7 @@ class OProductsCollection(ODataObjectCollection):
         self.next_link: str = data.get("@odata.nextLink", "")
         self.count: int = data.get("@odata.count", 0)
 
-        self.products: list[OProduct] = [OProduct(client, d, response) for d in data["value"]]
+        self.items: list[OProduct] = [OProduct(client, d, response) for d in data["value"]]
 
 
 class OProduct(ODataObject):
@@ -746,11 +748,12 @@ class OProduct(ODataObject):
             [ODataCoordinate(c[0], c[1]) for c in data["GeoFootprint"]["coordinates"][0]]
         )
 
-        self.attributes: list[OProductAttributes] = [OProductAttributes(a["@odata.type"],
-                                                                        a["Name"],
-                                                                        a["Value"],
-                                                                        a["ValueType"]
-                                                                        ) for a in data.get("Attributes", [])]
+        self.attributes: dict[OProductAttributes] = {a["Name"]: OProductAttributes(a["@odata.type"],
+                                                                                   a["Name"],
+                                                                                   a["Value"],
+                                                                                   a["ValueType"]
+                                                                                   ) for a in data.get("Attributes", [])
+                                                     }
 
     @property
     async def nodes(self) -> typing.Optional[OProductNodesCollection]:
@@ -771,35 +774,11 @@ class OProduct(ODataObject):
         return result
 
 
-class OProductNodesCollection(ODataObject):
-    def __init__(self, client, response, data):
+class OProductNodesCollection(ODataObjectCollection):
+    def __init__(self, client, data, response):
         super().__init__(client, response)
 
-        self.nodes: list[OProductNode] = [OProductNode(client, response, d) for d in data["result"]]
-
-        self.__current: int = 0
-
-    def __getitem__(self, item):
-        return self.nodes[item]
-
-    def __len__(self):
-        return len(self.nodes)
-
-    def __iter__(self):
-        self.__current = 0
-        return self
-
-    def __next__(self):
-        if self.__current >= len(self.nodes):
-            self.__current = 0
-            raise StopIteration
-
-        current = self.nodes[self.__current]
-        self.__current += 1
-        return current
-
-    def __nonzero__(self) -> bool:
-        return bool(self.nodes)
+        self.items: list[OProductNode] = [OProductNode(client, response, d) for d in data["result"]]
 
 
 class OProductNode(ODataObject):
@@ -848,3 +827,43 @@ class OProductAttributes:
     name: str
     value: str
     value_type: str
+
+
+class ODataWorkflowsCollection(ODataObjectCollection):
+    def __init__(self, client, response, data: dict):
+        super().__init__(client, response)
+        self.context: str = data["@odata.context"]
+        self.next_link: str = data.get("@odata.nextLink", "")
+        self.count: int = data.get("@odata.count", 0)
+        self.items: tuple[ODataWorkflow] = tuple([ODataWorkflow(client, response, d) for d in data.get("value", [])])
+
+
+class ODataWorkflow(ODataObject):
+    def __init__(self, client: Client, response, data: dict):
+        super().__init__(client, response)
+
+        self.id: str = data["Id"]
+        self.uuid: str = data.get("Uuid", "")
+        self.name: str = data["Name"]
+        self.display_name: str = data["DisplayName"]
+        self.documentation: str = data.get("Documentation", "")
+        self.description: str = data.get("Description", "")
+        self.input_product_type: str = data.get("InputProductType", "")
+        self.input_product_types: list[str] = data["InputProductTypes"]
+        self.output_product_type: str = data.get("OutputProductType", "")
+        self.output_product_types: list[str] = data["OutputProductTypes"]
+        self.version: str = data.get("WorkflowVersion", "")
+        self.options: list[ODataWorkflowOption] = [ODataWorkflowOption(o["Name"], o.get("Description"), o["Type"],
+                                                                       o.get("Default"), o.get("value"), o["Required"]
+                                                                       ) for o in data.get("WorkflowOptions", [])]
+        self.custom_input_source: bool = True
+
+
+@dataclass
+class ODataWorkflowOption:
+    name: str
+    description: str
+    type: str
+    default: str
+    value: str
+    required: bool = True

@@ -1,7 +1,7 @@
 import logging
 
 from odata.client import Client
-from odata._query_constructors import Attributes, Collections, QueryFilter as Filter
+from odata._query_constructors import QueryFilter as Filter
 
 import odata.types as types
 

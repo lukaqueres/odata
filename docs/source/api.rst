@@ -4,16 +4,18 @@ Client
 
 .. rst-class:: attributes
 
+.. cssclass:: attributes-list
+
 .. hlist::
     :columns: 2
-
+    .. cssclass:: attributes-head
     * **Attributes**
     * email
     * http
     * product
     * source
     * **Methods**
-    * .. decorator:: ready
+    * @ ready
     * def run
     * async stop
 
@@ -24,9 +26,6 @@ Represents connection to odata API. You use this class to interact with data.
 - **source** ``(Optional[ str ])`` -
     Default "creodias", source of data. Accepts "creodias" & "codede"
 
-.. _client-email:
-
-
 .. attribute:: email
 
     Email of authorized user. ``None`` if no user is authorized.
@@ -34,3 +33,9 @@ Represents connection to odata API. You use this class to interact with data.
     :type: **Type:**
         Optional[ str ]
 
+.. attribute:: `property` http
+
+    Email of authorized user. ``None`` if no user is authorized.
+
+    :type: **Type:**
+        Optional[ str ]

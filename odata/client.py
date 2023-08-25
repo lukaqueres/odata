@@ -3,7 +3,6 @@ import os
 import time
 import typing
 import logging
-import requests
 
 import odata.errors as errors
 import odata._types as _types
@@ -16,7 +15,7 @@ logger = logging.getLogger("odata")
 
 class Client:
 
-    def __init__(self, source: typing.Literal["creodias", "codede"] = "creodias"):
+    def __init__(self, source: typing.Literal["creodias", "codede"] = "creodias", **kwargs):
         self.__loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self.__run_event: asyncio.Event = asyncio.Event()
         self.__token: typing.Optional[Token] = None
@@ -30,8 +29,12 @@ class Client:
         self.email: str = ""
 
     @property
-    def product(self) -> _constructors.OProductsQueryConstructor:
+    def products(self) -> _constructors.OProductsQueryConstructor:
         return _constructors.OProductsQueryConstructor(self)
+
+    @property
+    def workflows(self) -> _constructors.OWorkflowsQueryConstructor:
+        return _constructors.OWorkflowsQueryConstructor(self)
 
     def run(self, email: str, password: str, totp_key: str = "",
             totp_code: str | typing.Callable[[], str] = "",
@@ -61,5 +64,7 @@ class Client:
     async def __exceptions(function):
         try:
             return await function
-        except Exception:
-            raise
+        except Exception as e:
+            logger.exception(f"Exception raised during task execution:")
+
+            raise e.__cause__

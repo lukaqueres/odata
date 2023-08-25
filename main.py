@@ -2,9 +2,7 @@ import asyncio
 import os
 
 import odata
-from odata import Collections, Filter, Attributes
-
-import datetime  # TODO: TMP
+from odata import Filter
 
 
 def ask_code() -> str:
@@ -19,20 +17,31 @@ async def on_ready():
     print(f"Logged in as {client.email} with some ms latency")
 
 
+"""Filter.or_where(
+    Filter.name.has("CARD-COH12"),
+    Filter.name.has("CARD-COH6"),
+    Filter.name.has("CARD-BS"),
+),"""
+
+
 @client.ready
 async def main():
-    collection = await client.product.filter.where(
-        Collections.is_in(Collections.SENTINEL_1, Collections.SENTINEL_2),
-        Filter.or_where(
-            Filter.Name.has("S1A")
-        ),
-        Filter.Sensing.span(
-            datetime.datetime.now() - datetime.timedelta(days=120),
-            datetime.datetime.now())
-    ).get()
+    collection = await client.products.filter.where(
+        Filter.attribute.satisfies(Filter.attribute.ProductType, "in", ["CARD-COH12", "CARD-BS", "CARD-COH6"])
+    ).expand("Attributes").get()
 
     for product in collection:
-        print(product.name)
+        print(f"{product.name} - {product.attributes['productType'].value}")
+
+    workflows = await client.workflows.get()
+
+    print(f"Workflows: {len(workflows)} ")
+    for workflow in workflows:
+        print(f"{workflow.name}: {workflow.input_product_types}")
+
+    batch_response, batch_result = await client.http.request("get", "https://datahub.creodias.eu/odata/v1/BatchOrder")
+
+    print(batch_result["value"])
 
     await asyncio.sleep(10)
     await client.stop()

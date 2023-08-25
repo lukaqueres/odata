@@ -9,3 +9,10 @@
 .hlist li :hover {
     color: blue;
 }
+
+.attribute-list .attributes-head {
+}
+
+.attribute > dt{
+    width: 100%
+}

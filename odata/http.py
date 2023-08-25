@@ -10,7 +10,7 @@ import aiohttp
 
 import odata.errors as errors
 
-logger = logging.getLogger("http")
+logger = logging.getLogger("odata.http")
 
 _platforms: dict[str, str] = {
     "creodias": "https://identity.cloudferro.com/",
@@ -186,13 +186,13 @@ class Http:
             session.headers["authorization"] = f"Bearer {await self.__token.value}"
             async with session.request(method, url, **kwargs) as response:
 
-                if response.status in (401, 403):
-                    raise errors.UnauthorizedError(response.status, response.reason)
-
                 logger.debug(f"{response.method} {response.status} - {response.url}")
 
                 if not response.ok:
                     logger.debug(f"Endpoint for {url} returned {response.status} - {response.reason}")
+
+                if response.status in (401, 403):
+                    raise errors.UnauthorizedError(response.status, response.reason)
 
                 return response, await response.json()
 

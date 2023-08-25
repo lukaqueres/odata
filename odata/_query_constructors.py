@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
     from odata.client import Client
 
 import odata.errors as errors
-from odata._types import OProductNodesCollection, OProductsCollection
+from odata._types import OProductNodesCollection, OProductsCollection, ODataWorkflowsCollection
 from odata._helpers import TimeConverter
 
 logger = logging.getLogger("odata")
@@ -59,14 +59,21 @@ class Attributes:
 
     @staticmethod
     def satisfies(attribute: Attribute,
-                  operator: Literal["eq", "==", "le", "<=", "lt", "<", "ge", ">=", "gt", ">", "!="],
-                  value: typing.Union[str, int, float, datetime.datetime]) -> TFilter:
+                  operator: Literal["eq", "==", "le", "<=", "lt", "<", "ge", ">=", "gt", ">", "!=", "in"],
+                  value: typing.Union[str, int, float, datetime.datetime,
+                                      list[typing.Union[str, int, float, datetime.datetime]]]
+                  ) -> TFilter | TFilterGroup:
 
         if operator == "!=":
             return AttributesFilter(
                 "not Attributes/{_type}/any(att:att/Name eq '{_name}' and att/{_type}/Value {_operator} {_value})",
                 attribute, "eq", value
             )
+
+        if operator == "in":
+            return OrFilterGroup((AttributesFilter(
+                "Attributes/{_type}/any(att:att/Name eq '{_name}' and att/{_type}/Value {_operator} {_value})",
+                attribute, "eq", v) for v in value))
 
         operators: dict = {
             "eq": "eq",
@@ -79,7 +86,8 @@ class Attributes:
             ">=": "ge",
             "gt": "gt",
             ">": "gt",
-            "!=": "eq"
+            "!=": "eq",
+            "in": "eq"
         }
 
         return AttributesFilter(
@@ -115,6 +123,42 @@ class Filter:
 TFilter = typing.TypeVar("TFilter", bound=Filter)
 
 
+class Collection:
+    def __init__(self, name: str):
+        self.name: str = name
+
+
+class CollectionFilter(Filter):
+    def __init__(self, name: str):
+        super().__init__("Collection/Name eq '{name}'")
+        self.name = name
+
+
+class Collections:
+    SENTINEL_1 = Collection("SENTINEL-1")
+    SENTINEL_2 = Collection("SENTINEL-2")
+    SENTINEL_3 = Collection("SENTINEL-3")
+    SENTINEL_5P = Collection("SENTINEL-5P")
+    SENTINEL_6 = Collection("SENTINEL-6")
+    SENTINEL_1_RTC = Collection("SENTINEL-1-RTC")
+    LANDSAT_5 = Collection("LANDSAT-5")
+    LANDSAT_7 = Collection("LANDSAT-7")
+    LANDSAT_8 = Collection("LANDSAT-8")
+    SMOS = Collection("SMOS")
+    TERRAAQUA = Collection("TERRAAQUA")
+    COP_DEM = Collection("COP-DEM")
+    ENVISAT = Collection("ENVISAT")
+    S2GLC = Collection("S2GLC")
+
+    @staticmethod
+    def is_in(*collections: Collection) -> TFilterGroup:
+        return OrFilterGroup([CollectionFilter(c.name) for c in collections])
+
+    @staticmethod
+    def is_from(collection: Collection) -> TFilter:
+        return CollectionFilter(collection.name)
+
+
 class AttributesFilter(Filter):
     def __init__(self, filter_format: str, attribute: Attribute, operator: str,
                  value: typing.Union[str, int, float, datetime.datetime]):
@@ -139,9 +183,6 @@ class QueryConstructorFilterParser:
         self.filters: typing.Union[TFilterGroup, TFilter, None] = None
         self._constructor: TQueryConstructor = constructor
 
-    def __nonzero__(self) -> bool:
-        return bool(self.filters)
-
     def clear(self) -> TQueryConstructor:
         self.filters = None
         return self._constructor
@@ -152,6 +193,12 @@ class QueryConstructorFilterParser:
 
     def __str__(self) -> str:
         return str(self.filters)
+
+    def __bool__(self) -> bool:
+        return bool(self.filters)
+
+    def __len__(self) -> int:
+        return len(self.filters)
 
     def or_where(self, *filters: typing.Union[TFilter, TFilterGroup]) -> TQueryConstructor:
         self.filters = OrFilterGroup(filters)
@@ -255,10 +302,13 @@ class Geographic(Filter):
 
 
 class QueryFilter:
-    Name: Name = Name
-    Publication: PublicationDate = PublicationDate
-    Sensing: SensingDate = SensingDate
-    Geographic: Geographic = Geographic
+    name: Name = Name
+    publication: PublicationDate = PublicationDate
+    sensing: SensingDate = SensingDate
+    geographic: Geographic = Geographic
+
+    attribute: Attributes = Attributes
+    collection: Collections = Collections
 
     @staticmethod
     def where(*filters: typing.Union[TFilter, TFilterGroup]) -> TFilterGroup:
@@ -302,47 +352,18 @@ class NotFilter(Filter):
         return str(self.negate_filter)
 
 
-class Collection:
-    def __init__(self, name: str):
-        self.name: str = name
-
-
-class CollectionFilter(Filter):
-    def __init__(self, name: str):
-        super().__init__("Collection/Name eq '{name}'")
-        self.name = name
-
-
-class Collections:
-    SENTINEL_1 = Collection("SENTINEL-1")
-    SENTINEL_2 = Collection("SENTINEL-2")
-    SENTINEL_3 = Collection("SENTINEL-3")
-    SENTINEL_5P = Collection("SENTINEL-5P")
-    SENTINEL_6 = Collection("SENTINEL-6")
-    SENTINEL_1_RTC = Collection("SENTINEL-1-RTC")
-    LANDSAT_5 = Collection("LANDSAT-5")
-    LANDSAT_7 = Collection("LANDSAT-7")
-    LANDSAT_8 = Collection("LANDSAT-8")
-    SMOS = Collection("SMOS")
-    TERRAAQUA = Collection("TERRAAQUA")
-    COP_DEM = Collection("COP-DEM")
-    ENVISAT = Collection("ENVISAT")
-    S2GLC = Collection("S2GLC")
-
-    @staticmethod
-    def is_in(*collections: Collection) -> TFilterGroup:
-        return OrFilterGroup([CollectionFilter(c.name) for c in collections])
-
-    @staticmethod
-    def is_from(collection: Collection) -> TFilter:
-        return CollectionFilter(collection.name)
-
-
 class QueryConstructor:
 
     def __init__(self, client: Client):
         self.filter: QueryConstructorFilterParser = QueryConstructorFilterParser(self)
         self._client = client
+
+        self._top: int = 0
+        self._skip: int = 0
+        self._count: bool = False
+        self._expand: str = ""
+        self._order_by: list[str] = []
+        self._order_by_options: list[str] = []
 
     def _query_url(self) -> str:
         api_urls = {
@@ -352,63 +373,84 @@ class QueryConstructor:
 
         return api_urls[self._client.source]
 
-
-TQueryConstructor = typing.TypeVar("TQueryConstructor", bound=QueryConstructor)
-
-
-class OProductsQueryConstructor(QueryConstructor):
-    def __init__(self, client):
-        super().__init__(client)
-
-        self.__top: int = 0
-        self.__skip: int = 0
-        self.__count: bool = False
-        self.__expand: str = ""
-        self.__order_by: list[str] = []
-
-    def __parse_params(self) -> dict:
+    def _parse_params(self) -> dict:
         params = {}
-        if self.__top:
-            params.update({"$top": self.__top})
-        if self.__skip:
-            params.update({"$skip": self.__skip})
-        if self.__count:
-            params.update({"$count": self.__count})
-        if self.__expand:
-            params.update({"$expand": self.__expand})
-        if self.__order_by:
-            params.update({"$orderby": f"{self.__order_by[0]} {self.__order_by[1]}"})
+        if self._top:
+            params.update({"$top": self._top})
+        if self._skip:
+            params.update({"$skip": self._skip})
+        if self._count:
+            params.update({"$count": self._count})
+        if self._expand:
+            params.update({"$expand": self._expand})
+        if self._order_by:
+            params.update({"$orderby": f"{self._order_by[0]} {self._order_by[1]}"})
+
         if self.filter:
             params.update({"$filter": str(self.filter)})
         return params
 
-    def top(self, number: int) -> OProductsQueryConstructor:
+    def top(self, number: int) -> TQueryConstructor:
         if not 0 <= number <= 1000:
             raise errors.InvalidNumberError(number, [0, 1000])
-        self.__top = number
+        self._top = number
         return self
 
-    def skip(self, number: int) -> OProductsQueryConstructor:
+    def skip(self, number: int) -> TQueryConstructor:
         if not 0 <= number <= 10000:
             raise errors.InvalidNumberError(number, [0, 10000])
-        self.__top = number
+        self._skip = number
         return self
 
-    def count(self, count: bool) -> OProductsQueryConstructor:
-        self.__count = count
+    def count(self, count: bool) -> TQueryConstructor:
+        self._count = count
         return self
 
-    def expand(self, category: Literal["Attributes"]) -> OProductsQueryConstructor:
-        self.__expand = category
+    def expand(self, category: Literal["Attributes"]) -> TQueryConstructor:
+        self._expand = category
         return self
 
-    def order_by(self, argument: Literal["ContentDate/Start", "ContentDate/End", "PublicationDate", "ModificationDate"],
-                 direction: Literal["asc", "desc"] = "asc") -> OProductsQueryConstructor:
-        if argument not in ["ContentDate/Start", "ContentDate/End", "PublicationDate", "ModificationDate"]:
-            errors.InvalidFromSelectionError(argument, ["ContentDate/Start", "ContentDate/End", "PublicationDate",
-                                                        "ModificationDate"])
-            self.__order_by = [argument, direction]
+    def order_by(self, argument: str,
+                 direction: Literal["asc", "desc"] = "asc") -> TQueryConstructor:
+        if argument not in self._order_by_options:
+            errors.InvalidFromSelectionError(argument, self._order_by_options)
+            self._order_by = [argument, direction]
         return self
+
+
+TQueryConstructor = typing.TypeVar("TQueryConstructor", bound=QueryConstructor)
+
+
+class OWorkflowsQueryConstructor(QueryConstructor):
+    def __init__(self, client: Client):
+        super().__init__(client)
+
+        self.__expand: str = ""
+        self.__order_by: list[str] = []
+
+        self.__top: int = 0
+        self.__skip: int = 0
+        self.__count: bool = False
+
+        self._order_by_options: list = []
+
+    async def get(self) -> typing.Optional[ODataWorkflowsCollection]:
+        params = self._parse_params()
+        url = "https://datahub.creodias.eu/odata/v1/Workflows"
+        response, result = await self._client.http.request("get", url, params=params)
+
+        if not response.ok:
+            return None
+
+        collection = ODataWorkflowsCollection(self._client, response, result)
+        return collection
+
+
+class OProductsQueryConstructor(QueryConstructor):
+    def __init__(self, client: Client):
+        super().__init__(client)
+
+        self._order_by_options: list[str] = ["ContentDate/Start", "ContentDate/End", "PublicationDate", "ModificationDate"]
 
     async def get(self, *ids: str) -> typing.Optional[OProductsCollection]:
         data = {}
@@ -424,7 +466,7 @@ class OProductsQueryConstructor(QueryConstructor):
             url = f"https://datahub.creodias.eu/odata/v1/Products({ids[0]})"
             method = "get"
         else:
-            params = self.__parse_params()
+            params = self._parse_params()
             url = "https://datahub.creodias.eu/odata/v1/Products"
             method = "get"
         response, result = await self._client.http.request(method, url, params=params, data=data)
@@ -436,12 +478,13 @@ class OProductsQueryConstructor(QueryConstructor):
         return collection
 
     async def nodes(self, product_id: str) -> typing.Optional[OProductNodesCollection]:
-        response = await self._client.http.request("get", f"https://datahub.creodias.eu/odata/v1/Products({product_id})/Nodes")
+        data, response = await self._client.http.request("get", f"https://datahub.creodias.eu/odata/v1/Products({product_id})/Nodes")
 
         if not response.ok:
             return None
 
-        return OProductNodesCollection(self._client, response.json())
+        return OProductNodesCollection(self._client, data, response)
+
 
 """
 
