@@ -2,40 +2,40 @@ Client
 #######
 .. class:: `class` odata.Client( `*, source="creodias", **options` )
 
-.. rst-class:: attributes
+    .. rst-class:: attributes
 
-.. hlist::
-    :columns: 2
+    .. hlist::
+        :columns: 2
 
-    * **Attributes**
-    * :ref:`_client-email`_
-    * http
-    * product
-    * source
-    * **Methods**
-    * @ ready
-    * def run
-    * async stop
+        * **Attributes**
+        * :ref:`client-email`
+        * http
+        * product
+        * source
+        * **Methods**
+        * @ ready
+        * def run
+        * async stop
 
-Represents connection to odata API. You use this class to interact with data.
+    Represents connection to odata API. You use this class to interact with data.
 
-**Parameters:**
+    **Parameters:**
 
-- **source** ``(Optional[ str ])`` -
-    Default "creodias", source of data. Accepts "creodias" & "codede"
+    - **source** ``(Optional[ str ])`` -
+        Default "creodias", source of data. Accepts "creodias" & "codede"
 
-.. _client-email:
+    .. _client-email:
 
-.. attribute:: email
+    .. attribute:: email
 
-    Email of authorized user. ``None`` if no user is authorized.
+        Email of authorized user. ``None`` if no user is authorized.
 
-    :type: **Type:**
-        Optional[ str ]
+        :type: **Type:**
+            Optional[ str ]
 
-.. attribute:: `property` http
+    .. attribute:: property http
 
-    Email of authorized user. ``None`` if no user is authorized.
+        Email of authorized user. ``None`` if no user is authorized.
 
-    :type: **Type:**
-        Optional[ str ]
+        :type: **Type:**
+            Optional[ str ]
