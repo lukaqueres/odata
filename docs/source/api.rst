@@ -4,20 +4,24 @@ Client
 
 .. rst-class:: attributes
 
-.. cssclass:: attributes-list
-
-.. hlist::
-    :columns: 2
     .. cssclass:: attributes-head
-    * **Attributes**
-    * email
-    * http
-    * product
-    * source
-    * **Methods**
-    * @ ready
-    * def run
-    * async stop
+
+        .. hlist::
+            :columns: 2
+
+            * **Attributes**
+            * **Methods**
+
+    .. hlist::
+        :columns: 2
+
+        * email
+        * http
+        * product
+        * source
+        * @ ready
+        * def run
+        * async stop
 
 Represents connection to odata API. You use this class to interact with data.
 
