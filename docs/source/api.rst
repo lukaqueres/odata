@@ -1,6 +1,6 @@
 Client
 #######
-.. class:: `class` odata.Client( `*, source="creodias", **options` )
+.. class:: odata.Client( *, source="creodias", **options )
 
     .. rst-class:: attributes
 
@@ -9,7 +9,7 @@ Client
 
         * **Attributes**
         * :ref:`email<client-email>`
-        * http
+        * :ref:`http<client-http>`
         * product
         * source
         * **Methods**
@@ -21,7 +21,7 @@ Client
 
     **Parameters:**
 
-    - **source** ``(Optional[ str ])`` -
+    - :attr:`source` ``(Optional[ str ])`` -
         Default "creodias", source of data. Accepts "creodias" & "codede"
 
     .. _client-email:
@@ -33,9 +33,10 @@ Client
         :type: **Type:**
             Optional[ str ]
 
+    .. _client-http:
+
     .. attribute:: property http
 
-        Email of authorized user. ``None`` if no user is authorized.
 
         :type: **Type:**
-            Optional[ str ]
+            Optional[ odata.Http ]
