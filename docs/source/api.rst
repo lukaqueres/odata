@@ -8,7 +8,7 @@ Client
     :columns: 2
 
     * **Attributes**
-    * :ref:`_client-email` email
+    * :ref:`email<_client-email>`
     * http
     * product
     * source
