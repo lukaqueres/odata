@@ -8,7 +8,7 @@ Client
     :columns: 2
 
     * **Attributes**
-    * :ref:`email<_client-email>`_
+    * :ref:`email`
     * http
     * product
     * source
@@ -23,8 +23,6 @@ Represents connection to odata API. You use this class to interact with data.
 
 - **source** ``(Optional[ str ])`` -
     Default "creodias", source of data. Accepts "creodias" & "codede"
-
-.. _client-email:
 
 .. attribute:: email
 
