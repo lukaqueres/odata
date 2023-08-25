@@ -4,10 +4,8 @@
 
 .hlist li {
     border-left: grey solid 1px;
-}
-
-.hlist li :hover {
-    color: blue;
+    list-style: none; !important
+    padding-left: 24px;
 }
 
 .attribute-list .attributes-head {
