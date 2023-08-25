@@ -21,7 +21,7 @@ Client
 
     **Parameters:**
 
-    - :attr:`source` ``(Optional[ str ])`` -
+    - :attr:`source Optional[ str ]` -
         Default "creodias", source of data. Accepts "creodias" & "codede"
 
     .. _client-email:
