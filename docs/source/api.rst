@@ -30,13 +30,11 @@ Client
 
         Email of authorized user. ``None`` if no user is authorized.
 
-        :type: **Type:**
-            Optional[ str ]
+        :type: Optional[ str ]
 
     .. _client-http:
 
     .. attribute:: property http
 
 
-        :type: **Type:**
-            Optional[ odata.Http ]
+        :type: Optional[ odata.Http ]
