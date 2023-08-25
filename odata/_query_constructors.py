@@ -371,7 +371,7 @@ class QueryConstructor:
             "codede": os.environ.get("CODEDE_TEST_URL")  # TODO: Update after release
         }
 
-        return api_urls[self._client.source]
+        return api_urls[self._client._source]
 
     def _parse_params(self) -> dict:
         params = {}

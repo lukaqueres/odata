@@ -84,7 +84,7 @@ class Token:
         self.__token, self.expires, self.__refresh_token = asyncio.run(self.__get())
         self.__loop = loop or asyncio.new_event_loop()
 
-        self.alive: asyncio.Task = self.__loop.create_task(self.__alive())
+        self.alive: asyncio.Task = self.__loop.create_task(self.__exceptions(self.__alive()))
         result = asyncio.ensure_future(self.alive)
 
         logger.debug(f"Token created for user {self.__credentials.email} valid for {self.__seconds_to(self.expires)}s")
@@ -158,6 +158,15 @@ class Token:
                 ]
                 return values
         return "", datetime.datetime.now(), None
+
+    @staticmethod
+    async def __exceptions(function):
+        try:
+            return await function
+        except Exception as e:
+            logger.exception(f"Exception raised during task execution:")
+
+            raise e.__cause__
 
 
 class Totp:

@@ -21,7 +21,7 @@ class Client:
         self.__token: typing.Optional[Token] = None
         self.http: typing.Optional[Http] = None
 
-        self.source = source
+        self._source = source
 
         self.__on_ready: typing.Optional[typing.Any] = None
         self.__ready_event: asyncio.Event = asyncio.Event()
@@ -55,6 +55,7 @@ class Client:
 
     async def stop(self):
         self.__token.stop()
+        self.__loop.stop()  # TODO: Fix errors notification
 
     def ready(self, func: typing.Callable[[], None]):
         self.__on_ready: typing.Callable[[], None] = func
