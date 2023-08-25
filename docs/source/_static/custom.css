@@ -13,6 +13,6 @@
 .attribute-list .attributes-head {
 }
 
-.attribute > dt{
+dt {
     width: 100%
 }
