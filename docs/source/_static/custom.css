@@ -4,7 +4,8 @@
 
 .hlist li {
     border-left: grey solid 1px;
-    list-style: none; !important
+    list-style: none !important;
+    margin: 0 !important;
     padding-left: 24px;
 }
 
