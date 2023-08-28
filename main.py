@@ -26,9 +26,16 @@ async def on_ready():
 
 @client.ready
 async def main():
+    collection = await client.products.get("060882f4-0a34-5f14-8e25-6876e4470b0d")
+
+    for product in collection:
+        await product.save()
+
     collection = await client.products.filter.where(
         Filter.attribute.satisfies(Filter.attribute.ProductType, "in", ["CARD-COH12", "CARD-BS", "CARD-COH6"])
     ).expand("Attributes").get()
+
+    collection = await client.products.filter.where(Filter.name.starts_with("S2MSI2A")).get()
 
     for product in collection:
         print(f"{product.name} - {product.attributes['productType'].value}")

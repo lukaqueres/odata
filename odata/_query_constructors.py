@@ -365,14 +365,6 @@ class QueryConstructor:
         self._order_by: list[str] = []
         self._order_by_options: list[str] = []
 
-    def _query_url(self) -> str:
-        api_urls = {
-            "creodias": "https://datahub.creodias.eu/odata/v1/",
-            "codede": os.environ.get("CODEDE_TEST_URL")  # TODO: Update after release
-        }
-
-        return api_urls[self._client._source]
-
     def _parse_params(self) -> dict:
         params = {}
         if self._top:
@@ -436,8 +428,8 @@ class OWorkflowsQueryConstructor(QueryConstructor):
 
     async def get(self) -> typing.Optional[ODataWorkflowsCollection]:
         params = self._parse_params()
-        url = "https://datahub.creodias.eu/odata/v1/Workflows"
-        response, result = await self._client.http.request("get", url, params=params)
+        endpoint = "Workflows"
+        response, result = await self._client.http.request("get", self._client.http.url(endpoint), params=params)
 
         if not response.ok:
             return None
@@ -457,19 +449,19 @@ class OProductsQueryConstructor(QueryConstructor):
         params = {}
 
         if len(ids) > 1:
-            url = "https://datahub.creodias.eu/odata/v1/Products/OData.CSC.FilterList"
+            endpoint = "Products/OData.CSC.FilterList"
             data = {
                 "FilterProducts": [{"Name": nid for nid in ids}]
             }
             method = "post"
         elif len(ids) == 1:
-            url = f"https://datahub.creodias.eu/odata/v1/Products({ids[0]})"
+            endpoint = f"Products({ids[0]})"
             method = "get"
         else:
             params = self._parse_params()
-            url = "https://datahub.creodias.eu/odata/v1/Products"
+            endpoint = "Products"
             method = "get"
-        response, result = await self._client.http.request(method, url, params=params, data=data)
+        response, result = await self._client.http.request(method, self._client.http.url(endpoint), params=params, data=data)
 
         if not response.ok:
             return None

@@ -7,6 +7,9 @@ import typing
 import logging
 import pyotp
 import aiohttp
+import aiofiles
+import os
+from pathlib import Path
 
 import odata.errors as errors
 
@@ -60,6 +63,9 @@ class RefreshToken:
     def __nonzero__(self) -> bool:
         return datetime.datetime.now() < self.expires
 
+    def __str__(self):
+        return self.value
+
 
 class Token:
     """
@@ -77,7 +83,7 @@ class Token:
                  totp_code: str | typing.Callable[[], str] = "",
                  platform: str = "creodias", loop: asyncio.AbstractEventLoop = None):
         if platform not in _platforms:
-            raise errors.InvalidPlatformError(platform, list(_platforms.keys()))
+            raise errors.PlatformNotSupported(f"{platform} is not supported platform")
 
         totp = Totp(totp_key=totp_key, totp_code=totp_code)
         self.__credentials: Credentials = Credentials(email, password, platform, totp)
@@ -113,6 +119,8 @@ class Token:
             logger.debug(f"Token refresh interval interrupted after {(datetime.datetime.now() - start).total_seconds()}s of runtime; "
                          f"{self.__credentials.email} valid for {self.__seconds_to(self.expires) + self.__time_margin}s more")
             raise
+        except Exception as e:
+            raise e
         finally:
             self.alive = None
 
@@ -129,12 +137,12 @@ class Token:
             }
             response = await session.post(url=self.__credentials.url, data=data)
         if not response.ok:
-            raise errors.AuthorizationFailedError(response.status, response.reason)
-        logger.debug(f"Token for {self.__credentials.email} refreshed")
+            raise errors.AuthenticationFailed(response.status, response.reason)
+        result = await response.json()
 
-        self.__token = data["access_token"]
-        self.expires = datetime.datetime.now() + datetime.timedelta(0, data["expires_in"])
-        self.__refresh_token = RefreshToken(data["refresh_token"], data["refresh_expires_in"])
+        self.__token = result["access_token"]
+        self.expires = datetime.datetime.now() + datetime.timedelta(0, result["expires_in"])
+        self.__refresh_token = RefreshToken(result["refresh_token"], result["refresh_expires_in"])
 
         return
 
@@ -147,9 +155,12 @@ class Token:
                 "grant_type": "password",
                 "totp": self.__credentials.totp
             }
+
             async with session.post(self.__credentials.url, data=data) as response:
+
+                logger.debug(f"Authentication request to {response.url}")
                 if not response.ok:
-                    raise errors.AuthorizationFailedError(response.status, response.reason)
+                    raise errors.AuthenticationFailed(response.status, response.reason)
                 data = await response.json()
                 values = [
                     data["access_token"],
@@ -164,7 +175,7 @@ class Token:
         try:
             return await function
         except Exception as e:
-            logger.exception(f"Exception raised during task execution:")
+            logger.exception(f"Exception {e.__class__.__name__} raised during task execution:")
 
             raise e.__cause__
 
@@ -187,8 +198,19 @@ class Totp:
 
 
 class Http:
-    def __init__(self, token):
+    def __init__(self, token, source, download_directory: str = ""):
         self.__token: Token = token
+        self.__source: str = source
+        self.__download_directory: str = download_directory or os.getcwd()
+
+    def url(self, endpoint: str) -> str:
+        api_urls = {
+            "creodias": "https://datahub.creodias.eu/odata/v1/",
+            "copernicus": "https://catalogue.dataspace.copernicus.eu/odata/v1/",
+            "codede": os.environ.get("CODEDE_TEST_URL")  # TODO: Update after release
+        }
+
+        return f"{api_urls[self.__source]}{endpoint}"
 
     async def request(self, method: str, url: str, **kwargs) -> [dict, aiohttp.ClientResponse]:
         async with aiohttp.ClientSession() as session:
@@ -204,6 +226,39 @@ class Http:
                     raise errors.UnauthorizedError(response.status, response.reason)
 
                 return response, await response.json()
+
+    async def download(self, url: str, file: str, **kwargs):
+        async with aiohttp.ClientSession(headers={"Authorization": f"Bearer {await self.__token.value}"}) as session:
+            async with session.get(url, allow_redirects=False, **kwargs) as response:
+
+                logger.debug(f"{response.method} {response.status} - {response.url}")
+
+                if not response.ok:
+                    logger.debug(f"Download {url} returned {response.status} - {response.reason}")
+
+                if response.status in (401, 403):
+                    raise errors.UnauthorizedError(response.status, response.reason)
+
+                file_location = response.headers["Location"]
+
+            async with session.get(file_location, allow_redirects=True) as response:
+
+                logger.debug(f"{response.method} {response.status} - {response.url}")
+
+                if not response.ok:
+                    logger.debug(f"Download {file_location} returned {response.status} - {response.reason}")
+
+                if response.status in (401, 403):
+                    raise errors.UnauthorizedError(response.status, response.reason)
+
+                file = f"{self.__download_directory}/{file}"
+
+                if Path(file).is_file():
+                    logger.debug(f"File {file} exists, writing over")
+                    os.remove(file)
+
+                async with aiofiles.open(file, 'wb') as f:
+                    await f.write(await response.content.read())
 
 
 if __name__ == "__main__":

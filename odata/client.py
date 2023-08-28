@@ -15,12 +15,14 @@ logger = logging.getLogger("odata")
 
 class Client:
 
-    def __init__(self, source: typing.Literal["creodias", "codede"] = "creodias", **kwargs):
+    def __init__(self, source: typing.Literal["creodias", "codede", "copernicus"] = "creodias",
+                 download_directory: str = "", **options):
         self.__loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self.__run_event: asyncio.Event = asyncio.Event()
         self.__token: typing.Optional[Token] = None
         self.http: typing.Optional[Http] = None
 
+        self._download_directory = download_directory or os.getcwd()
         self._source = source
 
         self.__on_ready: typing.Optional[typing.Any] = None
@@ -44,7 +46,7 @@ class Client:
 
         self.__token = Token(email, password, totp_key, totp_code, platform, self.__loop)
 
-        self.http = Http(self.__token)
+        self.http = Http(self.__token, self._source, self._download_directory)
 
         logger.info(f"Client connection for {self.email} is live")
 
@@ -66,6 +68,6 @@ class Client:
         try:
             return await function
         except Exception as e:
-            logger.exception(f"Exception raised during task execution:")
+            logger.exception(f"Exception {e.__class__.__name__} raised during task execution:")
 
-            raise e.__cause__
+            # raise e.__cause__

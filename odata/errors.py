@@ -1,3 +1,32 @@
+class ODataException(Exception):
+    """
+
+    """
+
+
+class ODataHttpException(ODataException):
+    """
+
+    """
+
+
+class AuthenticationFailed(ODataException):
+    """
+
+    """
+    def __init__(self, status, reason):
+        message = f"Authentication failed: {status} {reason}"
+        self.status: int = status
+        self.reason: str = reason
+        super().__init__(message)
+
+
+class PlatformNotSupported(ODataException):
+    """
+
+    """
+
+
 class InvalidFromSelectionError(Exception):
     def __init__(self, selection: str, selections: list):
         message = f"Provided {selection} is invalid. Please choose correct one from: {', '.join(selections)}"

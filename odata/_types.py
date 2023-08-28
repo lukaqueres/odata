@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import typing
 import logging
-
+import os
 import aiohttp
 
 if typing.TYPE_CHECKING:
@@ -757,21 +757,16 @@ class OProduct(ODataObject):
 
     @property
     async def nodes(self) -> typing.Optional[OProductNodesCollection]:
-        response = await self._client.http.request("get", f"Products({self.id})/Nodes")
+        response = await self._client.http.request("get", self._client.http.url("Products({self.id})/Nodes"))
         if not response.ok:
             return None
 
         return OProductNodesCollection(self._client, response, await response.json())
 
-    @property
-    async def value(self) -> typing.Optional[str]:
-        response = await self._client.http.request("get", f"Products({self.id})/$value")
-
-        if not response.ok:
-            return None
-        result = await response.json()
-
-        return result
+    async def save(self, name: str = ""):
+        name = name or self.name
+        result = await self._client.http.download(self._client.http.url(f"Products({self.id})/$value"),
+                                                  f"{name}.zip")
 
 
 class OProductNodesCollection(ODataObjectCollection):

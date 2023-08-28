@@ -13,9 +13,9 @@ Client
         * :ref:`products<client-products>`
         * :ref:`workflows<client-workflows>`
         * **Methods**
-        * :meth:`ready<client-ready>`
-        * :func:`run<client-run>`
-        * :func:`stop<client-stop>`
+        * :ref:`@ ready<client-ready>`
+        * :ref:`def run<client-run>`
+        * :ref:`async stop<client-stop>`
 
     Represents connection to odata API. You use this class to interact with data.
 
