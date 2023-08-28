@@ -2,3 +2,19 @@
 name = "odata"
 authors = [{name = "lukaqueres"}]
 dynamic = ["version", "description"]
+
+version = "0.0.1aN.devM"
+
+description = "Python library for creodias & codede odata access and processing."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU GPLv3 License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/lukaqueres/odata"
+"Bug Tracker" = "https://github.com/lukaqueres/odata/issues"
+"Documentation" = "https://odata.readthedocs.io/en/latest/index.html"
