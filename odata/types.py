@@ -1,1 +1,2 @@
 from odata._types import OProduct, OProductsCollection
+from odata._query_constructors import OProductsQueryConstructor, OWorkflowsQueryConstructor

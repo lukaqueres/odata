@@ -5,7 +5,7 @@ import typing
 import logging
 
 import odata.errors as errors
-import odata._query_constructors as _constructors
+import odata.types as types
 
 from odata.http import Token, Http
 
@@ -13,9 +13,21 @@ logger = logging.getLogger("odata")
 
 
 class Client:
+    """
+    Represents connection to odata API. You use this class to interact with data.
 
+    @var email: Email of authenticated user
+    @var http: Class Http for HTTP authorization & requests
+    """
     def __init__(self, source: typing.Literal["creodias", "codede", "copernicus"] = "creodias",
                  download_directory: str = "", **options):
+        """
+        Creates client instance with configuration
+
+        @param source: Name of platform to source from. Note not every platform has every endpoint.
+        @param download_directory: Preferably absolute path to directory to store downloaded products from. Default directory of script.
+        @param options: Other options.
+        """
         self.__loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
         self.__run_event: asyncio.Event = asyncio.Event()
         self.__token: typing.Optional[Token] = None
@@ -30,16 +42,38 @@ class Client:
         self.email: str = ""
 
     @property
-    def products(self) -> _constructors.OProductsQueryConstructor:
-        return _constructors.OProductsQueryConstructor(self)
+    def products(self) -> types.OProductsQueryConstructor:
+        """
+        Returns query constructor for product calls.
+
+        Returned class is used to make requests for products.
+
+        @return: Products query constructor
+        """
+        return types.OProductsQueryConstructor(self)
 
     @property
-    def workflows(self) -> _constructors.OWorkflowsQueryConstructor:
-        return _constructors.OWorkflowsQueryConstructor(self)
+    def workflows(self) -> types.OWorkflowsQueryConstructor:
+        """
+        Query constructor for workflow calls
+
+        @return: Workflow query constructor
+        """
+        return types.OWorkflowsQueryConstructor(self)
 
     def run(self, email: str, password: str, totp_key: str = "",
             totp_code: str | typing.Callable[[], str] = "",
-            platform: str = "creodias"):
+            platform: str = "creodias") -> None:
+        """
+        Authenticates user by provided credentials, generates token. If any funtion was set on ready, it will be called.
+
+        @param email: Email for account
+        @param password: Password associated with email
+        @param totp_key: If account has 2FA, you can pass totp secret and 2FA code will be generated automatically
+        @param totp_code: In case of 2FA, you can pass single code which will be used. Function can be provided for automatic calls.
+        @param platform: Platform provided account is on. Supported "creodias", "copernicus" and "codede"
+        @return: None
+        """
 
         self.email = email
 
@@ -55,10 +89,21 @@ class Client:
         self.__loop.run_forever()
 
     async def stop(self):
+        """
+        Halts client. Token will not be refreshed.
+
+        @return: None
+        """
         self.__token.stop()
         self.__loop.stop()  # TODO: Fix errors notification
 
-    def ready(self, func: typing.Callable[[], None]):
+    def ready(self, func: typing.Callable[[], None]) -> typing.Callable[[], None]:
+        """
+        Decorated function will be called when client will be ready
+
+        @param func: Asynchronous function
+        @return: No wrapper is created
+        """
         self.__on_ready: typing.Callable[[], None] = func
         return func
 
