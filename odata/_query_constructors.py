@@ -246,16 +246,16 @@ class SensingDate(Filter):
 
     @staticmethod
     def start(date: datetime.datetime) -> TFilter:
-        return PublicationDate("ContentDate/Start gt {_date}", date)
+        return SensingDate("ContentDate/Start gt {_date}", date)
 
     @staticmethod
     def span(start: datetime.datetime, end: datetime.datetime) -> TFilter:
         date = start
-        return PublicationDate("ContentDate/Start ge {_date} and ContentDate/End le {_end_date}", date, end)
+        return SensingDate("ContentDate/Start ge {_date} and ContentDate/End le {_end_date}", date, end)
 
     @staticmethod
     def end(date: datetime.datetime) -> TFilter:
-        return PublicationDate("ContentDate/End lt {_date}", date)
+        return SensingDate("ContentDate/End lt {_date}", date)
 
 
 class Name(Filter):
