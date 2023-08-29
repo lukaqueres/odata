@@ -50,6 +50,19 @@ async def main():
 
     print(batch_result["value"])
 
+    new = {
+        "Name": " S2B_MSIL1C_20230829T065629_N0509_R063_T45XVF_20230829T091015.SAFE",
+        "Priority": 0,
+        "WorkflowName": "string",
+        "WorkflowOptions": [
+        ],
+        "BatchSize": 0,
+        "BatchVolume": 0,
+    }
+
+    batch_response, batch_result = await client.http.request("get", "https://datahub.creodias.eu/odata/v1/BatchOrder(2136786)")
+    print(batch_result)
+
     await asyncio.sleep(10)
     await client.stop()
     await asyncio.sleep(10)

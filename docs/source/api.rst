@@ -3,7 +3,7 @@
     :description: Odata python library documentation
     :keywords: python, library, odata, documentation, api, creodias, codede
 
-.. automodule:: client
+.. automodule:: odata
     :members:
 
 .. class:: OProductsQueryConstructor(client: :ref:`Client`)
