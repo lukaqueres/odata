@@ -5,7 +5,6 @@ import typing
 import logging
 
 import odata.errors as errors
-import odata._types as _types
 import odata._query_constructors as _constructors
 
 from odata.http import Token, Http

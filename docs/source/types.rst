@@ -4,5 +4,5 @@
     index
     api
 
-.. automodule:: odata.types
+.. automodule:: types
      :members:

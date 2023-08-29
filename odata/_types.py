@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 import typing
 import logging
-import os
 import aiohttp
 
 if typing.TYPE_CHECKING:
