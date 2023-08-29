@@ -6,11 +6,6 @@
 Odata library
 #############
 
-.. toctree::
-    :maxdepth: 2
-
-    api
-
 odata is still evolving python library for odata data access with creodias or codede API.
 
 **Features:**

@@ -398,7 +398,7 @@ class QueryConstructor:
         self._count = count
         return self
 
-    def expand(self, category: Literal["Attributes"]) -> TQueryConstructor:
+    def expand(self, category: Literal["Attributes", "Assets"]) -> TQueryConstructor:
         self._expand = category
         return self
 
