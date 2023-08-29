@@ -6,6 +6,7 @@
     :maxdepth: 2
 
     api
+    types
 
 #############
 Odata library

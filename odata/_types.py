@@ -724,6 +724,11 @@ class OProductsCollection(ODataObjectCollection):
 
 
 class OProduct(ODataObject):
+    """
+        Single product record.
+
+    """
+
     def __init__(self, client: Client, data: dict, response: typing.Optional[aiohttp.ClientResponse] = None):
         super().__init__(client, response)
         self.media_type: str = data["@odata.mediaContentType"]

@@ -3,6 +3,12 @@
     :description: Odata python library documentation
     :keywords: python, library, odata, documentation, api, creodias, codede
 
+.. toctree::
+    :maxdepth: 2
+
+    index
+    types
+
 .. class:: odata.Client( *, source="creodias", **options )
 
     .. rst-class:: attributes
@@ -237,10 +243,10 @@
 
             Available arguments:
 
-            - ContentDate/Start",
-            - "ContentDate/End",
-            - "PublicationDate",
-            - "ModificationDate"
+                - ContentDate/Start",
+                - "ContentDate/End",
+                - "PublicationDate",
+                - "ModificationDate"
 
         :attr:`direction`
 
