@@ -2,6 +2,11 @@
 .. https://devguide.python.org/documentation/markup/
 .. https://devguide.python.org/documentation/markup/#module-specific-markup
 
+.. toctree::
+    :maxdepth: 2
+
+    api
+
 #############
 Odata library
 #############

@@ -26,14 +26,6 @@ rst_prolog = """
     :title: Welcome to odata documentation
     :description: Odata python library documentation
     :keywords: python, library, odata, documentation, api, creodias, codede
-
-
-
-.. toctree::
-    :maxdepth: 2
-
-    index
-    api
 """
 
 html_static_path = ['_static']
