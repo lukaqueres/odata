@@ -1,3 +1,8 @@
+.. meta::
+    :title: Odata API
+    :description: Odata python library documentation
+    :keywords: python, library, odata, documentation, api, creodias, codede
+
 .. class:: odata.Client( *, source="creodias", **options )
 
     .. rst-class:: attributes
@@ -145,8 +150,7 @@
 
     .. rst-class:: attributes
 
-    .. hlist::
-        :columns: 2
+    .. list::
 
         * **Attributes**
         * :ref:`filter <OProductsQueryConstructor-filter>`
