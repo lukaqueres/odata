@@ -2,11 +2,18 @@
 .. https://devguide.python.org/documentation/markup/
 .. https://devguide.python.org/documentation/markup/#module-specific-markup
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+.. meta::
+    :title: Welcome to OData
+    :description: Odata python library documentation
+    :keywords: python, library, odata, documentation, api, creodias, codede
 
-   api
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Contents:
+
+    index
+    api
 
 #############
 Odata library
