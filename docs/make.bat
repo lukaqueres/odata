@@ -10,6 +10,8 @@ if "%SPHINXBUILD%" == "" (
 set SOURCEDIR=source
 set BUILDDIR=build
 
+sphinx-apidoc -o docs/source odata
+
 if "%1" == "" goto help
 
 %SPHINXBUILD% >NUL 2>NUL
