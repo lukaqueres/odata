@@ -20,14 +20,6 @@ extensions = [
     'sphinx.ext.autosectionlabel',
 ]
 
-rst_prolog = """
-
-.. meta::
-    :title: Welcome to odata documentation
-    :description: Odata python library documentation
-    :keywords: python, library, odata, documentation, api, creodias, codede
-"""
-
 html_static_path = ['_static']
 
 html_css_files = ['custom.css',

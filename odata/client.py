@@ -20,7 +20,7 @@ class Client:
     @var http: Class Http for HTTP authorization & requests
     """
     def __init__(self, source: typing.Literal["creodias", "codede", "copernicus"] = "creodias",
-                 download_directory: str = "", ):
+                 download_directory: str = "", **options):
         """
         Creates client instance with configuration
 
