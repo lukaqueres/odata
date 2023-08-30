@@ -9,8 +9,6 @@ author = 'Lukaqueres'
 release = '0.1'
 version = '0.1.0'
 
-html_title = "OData library"
-
 # -- General configuration
 
 extensions = [

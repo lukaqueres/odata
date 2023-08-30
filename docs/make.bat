@@ -26,7 +26,7 @@ if errorlevel 9009 (
 )
 
 %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
-
+sphinx-apidoc -o docs/source odata
 goto end
 
 :help
