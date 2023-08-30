@@ -5,6 +5,7 @@
 
 .. automodule:: odata.client
     :members:
+    :undoc-members:
 
 .. class:: OProductsQueryConstructor(client: :ref:`Client`)
 
