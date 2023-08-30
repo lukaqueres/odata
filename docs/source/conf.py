@@ -1,6 +1,11 @@
 # Configuration file for the Sphinx documentation builder.
 
 # -- Project information
+import sys
+import os
+
+
+sys.path.insert(0, os.path.abspath('odata'))
 
 project = 'Odata'
 copyright = '2023, lukaqueres'

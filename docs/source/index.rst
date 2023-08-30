@@ -12,7 +12,6 @@
     :maxdepth: 2
     :caption: Contents:
 
-    index
     api
 
 #############
