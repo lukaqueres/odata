@@ -7,9 +7,15 @@ import typing
 import logging
 import pyotp
 import aiohttp
+from aiohttp import web
 import aiofiles
 import os
 from pathlib import Path
+
+
+if typing.TYPE_CHECKING:
+    from odata.client import Client
+
 
 import odata.errors as errors
 
@@ -82,6 +88,10 @@ class Token:
     def __init__(self, email: str, password: str, totp_key: typing.Optional[str] = "",
                  totp_code: str | typing.Callable[[], str] = "",
                  platform: str = "creodias", loop: asyncio.AbstractEventLoop = None):
+
+        if not email or not password:
+            return
+
         if platform not in _platforms:
             raise errors.PlatformNotSupported(f"{platform} is not supported platform")
 
@@ -259,6 +269,25 @@ class Http:
 
                 async with aiofiles.open(file, 'wb') as f:
                     await f.write(await response.content.read())
+
+
+class Server:
+    def __init__(self, client: Client, loop: asyncio.AbstractEventLoop):
+        self._client: Client = client
+        self._loop: asyncio.AbstractEventLoop = loop
+
+        self.app: web.Application = web.Application(loop=self._loop)
+        self.app.add_routes([web.get("/notifications/{name}", self.notification_handler)])
+
+        self.runner = web.AppRunner(self.app)
+
+    async def run(self):
+        await self.runner.setup()
+        site = web.TCPSite(self.runner, '127.0.0.1', 8080)
+        await site.start()
+
+    async def notification_handler(self, request):
+        return web.Response(text="Hello, {}".format(request.match_info['name']))
 
 
 if __name__ == "__main__":

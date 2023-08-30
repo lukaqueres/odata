@@ -7,7 +7,7 @@ import logging
 import odata.errors as errors
 import odata.types as types
 
-from odata.http import Token, Http
+from odata.http import Token, Http, Server
 
 logger = logging.getLogger("odata")
 
@@ -20,7 +20,7 @@ class Client:
     @var http: Class Http for HTTP authorization & requests
     """
     def __init__(self, source: typing.Literal["creodias", "codede", "copernicus"] = "creodias",
-                 download_directory: str = "", **options):
+                 download_directory: str = "", ):
         """
         Creates client instance with configuration
 
@@ -29,9 +29,9 @@ class Client:
         @param options: Other options.
         """
         self.__loop: asyncio.AbstractEventLoop = asyncio.new_event_loop()
-        self.__run_event: asyncio.Event = asyncio.Event()
         self.__token: typing.Optional[Token] = None
         self.http: typing.Optional[Http] = None
+        self.__server: Server = Server(self, self.__loop)
 
         self._download_directory = download_directory or os.getcwd()
         self._source = source
@@ -78,6 +78,7 @@ class Client:
         self.email = email
 
         self.__token = Token(email, password, totp_key, totp_code, platform, self.__loop)
+        self.__loop.create_task(self.__server.run())
 
         self.http = Http(self.__token, self._source, self._download_directory)
 
@@ -94,6 +95,7 @@ class Client:
 
         @return: None
         """
+        await self.__server.runner.cleanup()
         self.__token.stop()
         self.__loop.stop()  # TODO: Fix errors notification
 
