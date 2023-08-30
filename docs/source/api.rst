@@ -7,6 +7,6 @@
 Odata API
 #############
 
-.. automodule:: odata.client
+.. automodule:: odata
     :members:
     :undoc-members:
