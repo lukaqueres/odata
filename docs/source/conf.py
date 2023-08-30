@@ -16,6 +16,8 @@ version = '0.1.0'
 
 # -- General configuration
 
+master_doc = "index"
+
 extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',

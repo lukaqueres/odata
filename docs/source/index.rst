@@ -12,8 +12,6 @@
     :maxdepth: 2
     :caption: Contents:
 
-    api
-
 #############
 Odata library
 #############
