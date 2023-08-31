@@ -26,24 +26,28 @@ async def on_ready():
 
 @client.ready
 async def main():
-    collection = await client.products.get("060882f4-0a34-5f14-8e25-6876e4470b0d")
+    #collection = await client.products.get("060882f4-0a34-5f14-8e25-6876e4470b0d")
 
-    for product in collection:
-        await product.save()
+    #for product in collection:
+        #await product.save()
 
     collection = await client.products.filter.where(
-        Filter.attribute.satisfies(Filter.attribute.ProductType, "in", ["CARD-COH12", "CARD-BS", "CARD-COH6"])
+        Filter.attribute.satisfies(Filter.attribute.ProductType, "in", "EW_GRDH_1S-COG")
     ).expand("Attributes").get()
+
+    for product in collection:
+        print(product.name)
 
     collection = await client.products.filter.where(Filter.name.starts_with("S2MSI2A")).get()
 
     for product in collection:
         print(f"{product.name} - {product.attributes['productType'].value}")
 
-    workflows = await client.workflows.get()
+    workflows = await client.workflows.filter.where(Filter.name.exact("card_bs")).get()
 
     print(f"Workflows: {len(workflows)} ")
     for workflow in workflows:
+        print(workflow.description)
         print(f"{workflow.name}: {workflow.input_product_types}")
 
     batch_response, batch_result = await client.http.request("get", "https://datahub.creodias.eu/odata/v1/BatchOrder")
