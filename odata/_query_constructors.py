@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
     from odata.client import Client
 
 import odata.errors as errors
-from odata._types import OProductNodesCollection, OProductsCollection, ODataWorkflowsCollection
+from odata._types import OProductNodesCollection, OProductsCollection, ODataWorkflowsCollection, OProduct
 from odata._helpers import TimeConverter
 
 logger = logging.getLogger("odata")
@@ -244,6 +244,9 @@ class SensingDate(Filter):
     def _date_parser(self) -> str:
         return self._date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
+    def _end_date_parser(self) -> str:
+        return self._end_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
     @staticmethod
     def start(date: datetime.datetime) -> TFilter:
         return SensingDate("ContentDate/Start gt {_date}", date)
@@ -444,7 +447,7 @@ class OProductsQueryConstructor(QueryConstructor):
 
         self._order_by_options: list[str] = ["ContentDate/Start", "ContentDate/End", "PublicationDate", "ModificationDate"]
 
-    async def get(self, *ids: str) -> typing.Optional[OProductsCollection]:
+    async def get(self, *ids: str) -> typing.Optional[OProductsCollection | OProduct]:
         data = {}
         params = {}
 
@@ -463,11 +466,14 @@ class OProductsQueryConstructor(QueryConstructor):
             method = "get"
         response, result = await self._client.http.request(method, self._client.http.url(endpoint), params=params, data=data)
 
+        product = collection = None
         if not response.ok:
             return None
-
-        collection = OProductsCollection(self._client, response, result)
-        return collection
+        if len(ids) == 1:
+            product = OProduct(self._client, await response.json(), result)
+        else:
+            collection = OProductsCollection(self._client, response, result)
+        return product or collection
 
     async def nodes(self, product_id: str) -> typing.Optional[OProductNodesCollection]:
         data, response = await self._client.http.request("get", f"https://datahub.creodias.eu/odata/v1/Products({product_id})/Nodes")

@@ -7,7 +7,7 @@ import logging
 import odata.errors as errors
 import odata.types as types
 
-from odata.http import Token, Http, Server
+from odata._http import Token, Http, Server
 
 logger = logging.getLogger("odata")
 
@@ -17,8 +17,9 @@ class Client:
     Represents connection to odata API. You use this class to interact with data.
 
     @var email: Email of authenticated user
-    @var http: Class Http for HTTP authorization & requests
+    @var http: Class Http for HTTP __keycloak & requests
     """
+
     def __init__(self, source: typing.Literal["creodias", "codede", "copernicus"] = "creodias",
                  download_directory: str = "", **options):
         """
@@ -33,13 +34,28 @@ class Client:
         self.http: typing.Optional[Http] = None
         self.__server: Server = Server(self, self.__loop)
 
-        self._download_directory = download_directory or os.getcwd()
+        self.download = download_directory or os.getcwd()
         self._source = source
 
         self.__on_ready: typing.Optional[typing.Any] = None
         self.__ready_event: asyncio.Event = asyncio.Event()
 
         self.email: str = ""
+
+    @property
+    def download(self) -> str:
+        return self._download_directory
+
+    @download.setter
+    def download(self, value: str):
+        path = value if value.startswith("/") else f"{os.getcwd()}/{value}"
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"No such directory found '{path}'")
+        self._download_directory = path
+
+    @property
+    async def token(self):
+        return await self.__token.value
 
     @property
     def products(self) -> types.OProductsQueryConstructor:
@@ -115,5 +131,5 @@ class Client:
             return await function
         except Exception as e:
             logger.exception(f"Exception {e.__class__.__name__} raised during task execution:")
-
+            raise e
             # raise e.__cause__

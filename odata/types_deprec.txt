@@ -13,48 +13,48 @@ from odata.__authentication import Token
 class Group:
     _api_url = "https://datahub.creodias.eu/odata/v1/"
 
-    def __init__(self, token: str | Token):
-        self._token: Token | str = token
+    def __init__(cls, token: str | Token):
+        cls._token: Token | str = token
 
-    def token(self, token: Token | str) -> typing.Self:
-        self._token = token
-        return self
+    def token(cls, token: Token | str) -> typing.Self:
+        cls._token = token
+        return cls
 
     @staticmethod
     def time_converter(time: str) -> datetime.date:
         return datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ").date()
 
-    async def _get(self, endpoint: str, data: dict, *args, **kwargs) -> requests.Response:
+    async def _get(cls, endpoint: str, data: dict, *args, **kwargs) -> requests.Response:
         with requests.Session() as session:
-            session.headers["authorization"] = f"Bearer {self._token}"
+            session.headers["authorization"] = f"Bearer {cls._token}"
 
-            response: requests.Response = session.get(self._url(endpoint), *args, data=data, **kwargs)
+            response: requests.Response = session.get(cls._url(endpoint), *args, data=data, **kwargs)
 
         if response.status_code in (401, 403):
             raise errors.UnauthorizedError(response.status_code, response.reason)
 
         return response
 
-    async def _post(self, endpoint: str, data, *args, **kwargs) -> requests.Response:
+    async def _post(cls, endpoint: str, data, *args, **kwargs) -> requests.Response:
         with requests.Session() as session:
-            session.headers["authorization"] = f"Bearer {self._token}"
+            session.headers["authorization"] = f"Bearer {cls._token}"
 
-            response: requests.Response = session.post(self._url(endpoint), *args, json=data, **kwargs)
+            response: requests.Response = session.post(cls._url(endpoint), *args, json=data, **kwargs)
 
         if response.status_code in (401, 403):
             raise errors.UnauthorizedError(response.status_code, response.reason)
 
         return response
 
-    def _url(self, endpoint: str) -> str:
-        return f"{self._api_url}{endpoint}"
+    def _url(cls, endpoint: str) -> str:
+        return f"{cls._api_url}{endpoint}"
 
 
 class Production(Group):
-    def __init__(self, token: str | Token):
+    def __init__(cls, token: str | Token):
         super().__init__(token)
 
-    async def create(self, workflow_id: str, workflow_name: str, workflow_version: str, input_product_reference: dict,
+    async def create(cls, workflow_id: str, workflow_name: str, workflow_version: str, input_product_reference: dict,
                      workflow_options: dict, name: str, priority: int = 0,
                      notification_endpoint: str = "") -> SingleProductionOrders | RequestInvalid:
         # TODO: Figure out a way to handle notifications with events, could use a flask integration / support?
@@ -70,7 +70,7 @@ class Production(Group):
             "Name": name
         }
 
-        response = await self._post("ProductionOrder/OData.CSC.Order", data=data)
+        response = await cls._post("ProductionOrder/OData.CSC.Order", data=data)
 
         result = response.json()
 
@@ -84,19 +84,19 @@ class Production(Group):
             return invalidation_result
 
         production_order = ProductionOrder(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             id=result["Id"],
             status=result["Status"],
             status_message=result["StatusMessage"],
-            submission_date=self.time_converter(result["SubmissionDate"]),
+            submission_date=cls.time_converter(result["SubmissionDate"]),
             name=result["Name"],
-            estimated_date=self.time_converter(result["EstimatedDate"]),
+            estimated_date=cls.time_converter(result["EstimatedDate"]),
             input_product_reference=InputProductReference(
                 result["InputProductReference"]["Reference"],
                 ProductionReferenceContentDate(
-                    start=self.time_converter(result["InputProductReference"]["Start"]),
-                    end=self.time_converter(result["InputProductReference"]["End"])
+                    start=cls.time_converter(result["InputProductReference"]["Start"]),
+                    end=cls.time_converter(result["InputProductReference"]["End"])
                 )),
             workflow_name=result["WorkflowName"],
             workflow_options=result["WorkflowOptions"],
@@ -105,7 +105,7 @@ class Production(Group):
         )
 
         single_production_orders = SingleProductionOrders(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             context=result["@odata.context"],
             production_order=production_order
@@ -113,7 +113,7 @@ class Production(Group):
 
         return single_production_orders
 
-    async def cost(self, workflow_id: str, workflow_name: str, workflow_version: str, input_product_reference: dict,
+    async def cost(cls, workflow_id: str, workflow_name: str, workflow_version: str, input_product_reference: dict,
                    workflow_options: dict, name: str, priority: int = 0,
                    notification_endpoint: str = "") -> ProductionOrderCostEstimate | RequestInvalid:
 
@@ -128,7 +128,7 @@ class Production(Group):
             "Name": name
         }
 
-        response = await self._post("ProductionOrder/OData.CSC.EstimateCost", data=data)
+        response = await cls._post("ProductionOrder/OData.CSC.EstimateCost", data=data)
 
         result = response.json()
 
@@ -145,23 +145,23 @@ class Production(Group):
 
         return cost
 
-    async def order(self, order_id):
-        response = await self._get("ProductionOrder({id}".format(id=order_id), {})
+    async def order(cls, order_id):
+        response = await cls._get("ProductionOrder({id}".format(id=order_id), {})
         result = response.json()
         production_order = ProductionOrder(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             id=result["Id"],
             status=result["Status"],
             status_message=result["StatusMessage"],
-            submission_date=self.time_converter(result["SubmissionDate"]),
+            submission_date=cls.time_converter(result["SubmissionDate"]),
             name=result["Name"],
-            estimated_date=self.time_converter(result["EstimatedDate"]),
+            estimated_date=cls.time_converter(result["EstimatedDate"]),
             input_product_reference=InputProductReference(
                 result["InputProductReference"]["Reference"],
                 ProductionReferenceContentDate(
-                    start=self.time_converter(result["InputProductReference"]["Start"]),
-                    end=self.time_converter(result["InputProductReference"]["End"])
+                    start=cls.time_converter(result["InputProductReference"]["Start"]),
+                    end=cls.time_converter(result["InputProductReference"]["End"])
                 )),
             workflow_name=result["WorkflowName"],
             workflow_options=result["WorkflowOptions"],
@@ -170,7 +170,7 @@ class Production(Group):
         )
 
         single_production_orders = SingleProductionOrders(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             context=result["@odata.context"],
             production_order=production_order
@@ -178,7 +178,7 @@ class Production(Group):
 
         return single_production_orders
 
-    async def orders(self, query_filter: str = "", order_by: str = "", count: bool = False, top: int = 1000,
+    async def orders(cls, query_filter: str = "", order_by: str = "", count: bool = False, top: int = 1000,
                      skip: int = 0) -> ProductionOrders:
         if not 0 <= top <= 1000:
             raise ValueError("Invalid top value, must be between 0 and 1000")
@@ -192,25 +192,25 @@ class Production(Group):
             "skip": skip
         }
 
-        response = await self._get("ProductionOrders", data)
+        response = await cls._get("ProductionOrders", data)
 
         result = response.json()
         orders = []
         for order in result["value"]:
             orders.append(ProductionOrder(
-                _token=self._token,
+                _token=cls._token,
                 response=response,
                 id=order["Id"],
                 status=order["Status"],
                 status_message=order["StatusMessage"],
-                submission_date=self.time_converter(order["SubmissionDate"]),
+                submission_date=cls.time_converter(order["SubmissionDate"]),
                 name=order["Name"],
-                estimated_date=self.time_converter(order["EstimatedDate"]),
+                estimated_date=cls.time_converter(order["EstimatedDate"]),
                 input_product_reference=InputProductReference(
                     order["InputProductReference"]["Reference"],
                     ProductionReferenceContentDate(
-                        start=self.time_converter(order["InputProductReference"]["Start"]),
-                        end=self.time_converter(order["InputProductReference"]["End"])
+                        start=cls.time_converter(order["InputProductReference"]["Start"]),
+                        end=cls.time_converter(order["InputProductReference"]["End"])
                     )),
                 workflow_name=order["WorkflowName"],
                 workflow_options=order["WorkflowOptions"],
@@ -219,7 +219,7 @@ class Production(Group):
             ))
 
         production_orders = ProductionOrders(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             context=result["@odata.context"],
             production_orders=orders
@@ -234,14 +234,14 @@ class Type(Group):
     response: typing.Optional[requests.Response]
 
     @property
-    def latency(self) -> float:
+    def latency(cls) -> float:
         """ Get connection latency
 
         :return: Object's initial requests latency in ms
         """
-        if not self.response:
+        if not cls.response:
             return 0
-        return self.response.elapsed.total_seconds() * 1000
+        return cls.response.elapsed.total_seconds() * 1000
 
 
 @dataclass
@@ -249,8 +249,8 @@ class SingleProductionOrders(Type):
     context: str = ""
     production_order: typing.Optional[ProductionOrder] = None
 
-    def __nonzero__(self) -> bool:
-        return bool(self.production_order)
+    def __nonzero__(cls) -> bool:
+        return bool(cls.production_order)
 
 
 @dataclass
@@ -261,25 +261,25 @@ class ProductionOrders(Type):
     production_orders: list[ProductionOrder] = field(default_factory=lambda: [])
     __current: int = 0
 
-    def __getitem__(self, item):
-        return self.production_orders[item]
+    def __getitem__(cls, item):
+        return cls.production_orders[item]
 
-    def __len__(self):
-        return len(self.production_orders)
+    def __len__(cls):
+        return len(cls.production_orders)
 
-    def __iter__(self):
-        self.__current = 0
-        return self
+    def __iter__(cls):
+        cls.__current = 0
+        return cls
 
-    def __next__(self):
-        if self.__current >= len(self.production_orders):
-            self.__current = 0
+    def __next__(cls):
+        if cls.__current >= len(cls.production_orders):
+            cls.__current = 0
             raise StopIteration
-        self.__current += 1
-        return self.production_orders[self.__current]
+        cls.__current += 1
+        return cls.production_orders[cls.__current]
 
-    def __nonzero__(self) -> bool:
-        return bool(self.production_orders)
+    def __nonzero__(cls) -> bool:
+        return bool(cls.production_orders)
 
 
 @dataclass
@@ -296,23 +296,23 @@ class ProductionOrder(Type):
     workflow_id: str
     priority: int
 
-    async def cancel(self) -> SingleProductionOrders:
-        response = await self._post("ProductionOrder({id})/OData.CSC.Cancel".format(id=self.id), {})
+    async def cancel(cls) -> SingleProductionOrders:
+        response = await cls._post("ProductionOrder({id})/OData.CSC.Cancel".format(id=cls.id), {})
         result = response.json()
         production_order = ProductionOrder(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             id=result["Id"],
             status=result["Status"],
             status_message=result["StatusMessage"],
-            submission_date=self.time_converter(result["SubmissionDate"]),
+            submission_date=cls.time_converter(result["SubmissionDate"]),
             name=result["Name"],
-            estimated_date=self.time_converter(result["EstimatedDate"]),
+            estimated_date=cls.time_converter(result["EstimatedDate"]),
             input_product_reference=InputProductReference(
                 result["InputProductReference"]["Reference"],
                 ProductionReferenceContentDate(
-                    start=self.time_converter(result["InputProductReference"]["Start"]),
-                    end=self.time_converter(result["InputProductReference"]["End"])
+                    start=cls.time_converter(result["InputProductReference"]["Start"]),
+                    end=cls.time_converter(result["InputProductReference"]["End"])
                 )),
             workflow_name=result["WorkflowName"],
             workflow_options=result["WorkflowOptions"],
@@ -321,7 +321,7 @@ class ProductionOrder(Type):
         )
 
         single_production_orders = SingleProductionOrders(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             context=result["@odata.context"],
             production_order=production_order
@@ -329,12 +329,12 @@ class ProductionOrder(Type):
 
         return single_production_orders
 
-    async def output(self) -> Product:
-        response = await self._get("ProductionOrder({id})/OData.CSC.Cancel".format(id=self.id), {})
+    async def output(cls) -> Product:
+        response = await cls._get("ProductionOrder({id})/OData.CSC.Cancel".format(id=cls.id), {})
 
         result = response.json()
         product = Product(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             name=result["processed_name"],
             uuid=result["output_uuid"],
@@ -344,12 +344,12 @@ class ProductionOrder(Type):
 
         return product
 
-    async def value(self) -> str:
-        response = await self._get("ProductionOrder({id})/Product".format(id=self.id), {})
+    async def value(cls) -> str:
+        response = await cls._get("ProductionOrder({id})/Product".format(id=cls.id), {})
         return str(response.content)  # TODO: Check if it is string with output product
 
-    def __nonzero__(self) -> bool:
-        return bool(self.id)
+    def __nonzero__(cls) -> bool:
+        return bool(cls.id)
 
 
 @dataclass
@@ -359,8 +359,8 @@ class Product(Type):
     processed_size: int
     metadata: dict
 
-    def __nonzero__(self) -> bool:
-        return bool(self.name)
+    def __nonzero__(cls) -> bool:
+        return bool(cls.name)
 
 
 @dataclass
@@ -393,10 +393,10 @@ class RequestInvalid(Type):
 
 
 class WorkflowsGroup(Group):
-    def __init__(self, token: Token | str):
+    def __init__(cls, token: Token | str):
         super().__init__(token)
 
-    async def __call__(self, expand: list = [], workflow_filter: str = "", order_by: str = "",
+    async def __call__(cls, expand: list = [], workflow_filter: str = "", order_by: str = "",
                        count: bool = False, top: int = 0, skip: int = 0) -> Workflows:
         data: dict = {
             "expand": expand,
@@ -407,19 +407,19 @@ class WorkflowsGroup(Group):
             "skip": skip
         }
 
-        response = await self._get("Workflows", data=data)
+        response = await cls._get("Workflows", data=data)
 
         result = response.json()
 
         workflows = Workflows(
-            _token=self._token,
+            _token=cls._token,
             response=response,
             context=result["@odata.context"],
             next_link=result["@odata.nextLink"],
             count=result["@odata.count"],
             workflows=[
                 Workflow(
-                    _token=self._token,
+                    _token=cls._token,
                     response=response,
                     id=i["Id"],
                     uuid=i["Uuid"],
@@ -458,25 +458,25 @@ class Workflows(Type):
     workflows: list[Workflow]
     __current: int = 0
 
-    def __getitem__(self, item):
-        return self.workflows[item]
+    def __getitem__(cls, item):
+        return cls.workflows[item]
 
-    def __len__(self):
-        return len(self.workflows)
+    def __len__(cls):
+        return len(cls.workflows)
 
-    def __iter__(self):
-        self.__current = 0
-        return self
+    def __iter__(cls):
+        cls.__current = 0
+        return cls
 
-    def __next__(self):
-        if self.__current >= len(self.workflows):
-            self.__current = 0
+    def __next__(cls):
+        if cls.__current >= len(cls.workflows):
+            cls.__current = 0
             raise StopIteration
-        self.__current += 1
-        return self.workflows[self.__current]
+        cls.__current += 1
+        return cls.workflows[cls.__current]
 
-    def __nonzero__(self) -> bool:
-        return bool(self.workflows)
+    def __nonzero__(cls) -> bool:
+        return bool(cls.workflows)
 
 
 @dataclass

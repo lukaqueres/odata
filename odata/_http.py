@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import datetime
+import math
 import typing
 import logging
 import pyotp
@@ -165,6 +166,7 @@ class Token:
                 "grant_type": "password",
                 "totp": self.__credentials.totp
             }
+            print(data)
 
             async with session.post(self.__credentials.url, data=data) as response:
 
@@ -207,6 +209,13 @@ class Totp:
         return code
 
 
+timeout = aiohttp.ClientTimeout(
+    total=None, # total timeout (time consists connection establishment for a new connection or waiting for a free connection from a pool if pool connection limits are exceeded) default value is 5 minutes, set to `None` or `0` for unlimited timeout
+    sock_connect=10, # Maximal number of seconds for connecting to a peer for a new connection, not given from a pool. See also connect.
+    sock_read=10 # Maximal number of seconds for reading a portion of data from a peer
+)
+
+
 class Http:
     def __init__(self, token, source, download_directory: str = ""):
         self.__token: Token = token
@@ -224,7 +233,7 @@ class Http:
 
     async def request(self, method: str, url: str, **kwargs) -> [dict, aiohttp.ClientResponse]:
         async with aiohttp.ClientSession() as session:
-            session.headers["authorization"] = f"Bearer {await self.__token.value}"
+            session.headers["__keycloak"] = f"Bearer {await self.__token.value}"
             async with session.request(method, url, **kwargs) as response:
 
                 logger.debug(f"{response.method} {response.status} - {response.url}")
@@ -237,38 +246,27 @@ class Http:
 
                 return response, await response.json()
 
-    async def download(self, url: str, file: str, **kwargs):
-        async with aiohttp.ClientSession(headers={"Authorization": f"Bearer {await self.__token.value}"}) as session:
-            async with session.get(url, allow_redirects=False, **kwargs) as response:
-
+    async def download(self, url: str, file: str, chunks: typing.Optional[int] = None, **kwargs):
+        async with aiohttp.ClientSession(headers={"Authorization": f"Bearer {await self.__token.value}"}, raise_for_status=True) as session:
+            start: datetime.datetime = datetime.datetime.now()
+            async with session.get(url, allow_redirects=False, timeout=timeout, **kwargs) as response:
                 logger.debug(f"{response.method} {response.status} - {response.url}")
+                location = response.headers["Location"]
 
-                if not response.ok:
-                    logger.debug(f"Download {url} returned {response.status} - {response.reason}")
-
-                if response.status in (401, 403):
-                    raise errors.UnauthorizedError(response.status, response.reason)
-
-                file_location = response.headers["Location"]
-
-            async with session.get(file_location, allow_redirects=True) as response:
-
-                logger.debug(f"{response.method} {response.status} - {response.url}")
-
-                if not response.ok:
-                    logger.debug(f"Download {file_location} returned {response.status} - {response.reason}")
-
-                if response.status in (401, 403):
-                    raise errors.UnauthorizedError(response.status, response.reason)
-
-                file = f"{self.__download_directory}/{file}"
-
-                if Path(file).is_file():
-                    logger.debug(f"File {file} exists, writing over")
-                    os.remove(file)
-
+            async with session.get(location, allow_redirects=False, timeout=timeout) as product:
+                logger.debug(f"{product.method} {product.status} - {product.url}")
+                size = (product.content_length / 1000000)
+                logger.debug(f"File: '{file}' - {'overwrite' if Path(file).is_file() else 'new'}:  {size:.3f} MB ")
                 async with aiofiles.open(file, 'wb') as f:
-                    await f.write(await response.content.read())
+                    if chunks:
+                        async for c in product.content.iter_chunked(chunks):
+                            await f.write(c)
+                    else:
+                        async for c, _ in product.content.iter_chunks():
+                            await f.write(c)
+            span = (datetime.datetime.now() - start).total_seconds()
+            throughput = size / span
+            logger.debug(f"File: '{file}' - complete: {span:.2f}s {throughput:.4f} MB/s")
 
 
 class Server:

@@ -3,6 +3,8 @@ import logging
 from odata.client import Client
 from odata._query_constructors import QueryFilter as Filter
 
+from odata.__keycloak.__auth import Platform
+
 import odata.types as types
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s : %(message)s', level=logging.DEBUG)
